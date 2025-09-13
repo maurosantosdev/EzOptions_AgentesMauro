@@ -1,0 +1,7 @@
+pandas
+plotly
+streamlit
+yfinance
+MetaTrader5
+python-dotenv
+pytz
