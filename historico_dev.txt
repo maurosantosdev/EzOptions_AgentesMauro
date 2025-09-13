@@ -1,0 +1,24 @@
+Histórico de Desenvolvimento - Projeto EzOptions_Agentes
+
+Este arquivo resume as principais alterações e correções implementadas no sistema.
+
+1.  **Correção de Erros Iniciais:**
+    *   Resolvido `ValueError` e `TypeError` no arquivo `agent_system.py` relacionados à conversão de dados em pandas.
+    *   Corrigido `AttributeError` no `agent_dashboard.py` devido à falta de inicialização de variáveis de estado da sessão (ex: `st.session_state.call_color`).
+    *   Resolvido `StreamlitDuplicateElementId` no painel, que ocorria pela renderização de múltiplos gráficos idênticos sem uma chave única.
+    *   Corrigido erro de condição de corrida (`AttributeError` para `nearest_expiry`) garantindo que o atributo seja inicializado no construtor do agente.
+
+2.  **Refatoração da Lógica de Negociação (agent_system.py):**
+    *   A lógica de execução de ordens foi alterada de ordens de mercado para ordens pendentes.
+    *   O sistema agora utiliza ordens `BUY_STOP` e `SELL_STOP`, conforme solicitado.
+    *   O preço de gatilho para essas ordens agora é calculado dinamicamente com base nos setups de rompimento (Bullish/Bearish Breakout), usando os picos de Gamma como alvos.
+    *   Adicionada lógica para cancelar ordens pendentes existentes antes de criar uma nova, garantindo uma única operação por vez.
+
+3.  **Melhorias e Estabilização do Painel (agent_dashboard.py):**
+    *   O mecanismo de atualização automática com `while True/st.rerun` foi substituído por um método mais estável baseado em JavaScript para eliminar o problema de "pisca-pisca" dos gráficos.
+    *   A função de criação de gráficos (`create_exposure_bar_chart`) foi modificada para aceitar um parâmetro de altura, permitindo o ajuste do tamanho dos gráficos dos setups.
+    *   A interface foi limpa para usar componentes mais modernos como `st.metric`.
+
+4.  **Controle de Versão e Deploy:**
+    *   O projeto foi inicializado como um repositório Git local.
+    *   Todo o código-fonte foi enviado com sucesso para o repositório remoto no GitHub: https://github.com/maurosantosdev/projeto-trader-nasdaq.git
