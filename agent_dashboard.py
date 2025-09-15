@@ -70,12 +70,15 @@ def run_dashboard():
     status_color = "#28a745" if is_trading else "#ffc107"
     connection_status = "Conectado (MT5)" if controller.is_mt5_connected() else "Desconectado"
     market_status = "Aberto" if is_trading else "Fechado"
+    trading_status = "Pausado (Notícia)" if controller.trading_paused_due_to_news else "Ativo"
+    trading_status_color = "#ffc107" if controller.trading_paused_due_to_news else "#28a745"
 
     st.markdown(f'''
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 200px; margin-bottom: 10px;"><h3>Horário NY: {now_ny.strftime('%H:%M:%S')}</h3></div>
-        <div style="flex: 1; min-width: 200px; margin-bottom: 10px; text-align: center;"><h3>Mercado: <span style="color: {status_color};">{market_status}</span></h3></div>
-        <div style="flex: 1; min-width: 200px; margin-bottom: 10px; text-align: right;"><h3>Conexão: <span style="color: #17a2b8;">{connection_status}</span></h3></div>
+        <div style="flex: 1; min-width: 150px; margin-bottom: 10px;"><h3>Horário NY: {now_ny.strftime('%H:%M:%S')}</h3></div>
+        <div style="flex: 1; min-width: 150px; margin-bottom: 10px; text-align: center;"><h3>Mercado: <span style="color: {status_color};">{market_status}</span></h3></div>
+        <div style="flex: 1; min-width: 150px; margin-bottom: 10px; text-align: center;"><h3>Trading: <span style="color: {trading_status_color};">{trading_status}</span></h3></div>
+        <div style="flex: 1; min-width: 150px; margin-bottom: 10px; text-align: right;"><h3>Conexão: <span style="color: #17a2b8;">{connection_status}</span></h3></div>
     </div><hr/>
     ''', unsafe_allow_html=True)
 
@@ -89,6 +92,26 @@ def run_dashboard():
         st.metric("Posições Ativas", controller.get_active_positions_count())
     with cols[3]:
         st.metric("Taxa de Acertos", f"{controller.get_win_rate():.2f}%")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # --- Calendário Econômico ---
+    st.subheader("📰 Calendário Econômico")
+    news_df = controller.upcoming_news
+    if not news_df.empty:
+        display_df = news_df[['time', 'event', 'importance', 'country']].copy()
+        display_df.rename(columns={
+            'time': 'Horário (UTC)',
+            'event': 'Evento',
+            'importance': 'Impacto',
+            'country': 'País'
+        }, inplace=True)
+        
+        display_df['Horário (UTC)'] = display_df['Horário (UTC)'].dt.strftime('%Y-%m-%d %H:%M')
+        
+        st.dataframe(display_df, use_container_width=True)
+    else:
+        st.info("Nenhum evento econômico relevante para as próximas 24 horas.")
 
     st.markdown("<hr>", unsafe_allow_html=True)
 

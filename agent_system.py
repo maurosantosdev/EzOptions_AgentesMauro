@@ -3,7 +3,7 @@ import time
 import os
 from dotenv import load_dotenv
 import threading
-from datetime import datetime, time as datetime_time
+from datetime import datetime, time as datetime_time, timedelta
 import pytz
 import yfinance as yf
 import pandas as pd
@@ -22,7 +22,10 @@ class AgentSystem(threading.Thread):
             quit()
         print("Agent System Initialized and Connected to MetaTrader 5.")
         self.last_price = 0
-        self.lot_size = 0.02
+        self.lot_size = 0.01
+        self.stop_loss_percent = 1.0
+        self.risk_reward_ratio = 2.0
+        self.news_safe_mode_minutes = 15
         self.symbol = "US100"
         self.options_symbol = "QQQ"
         self.options_analysis_enabled = True
@@ -30,6 +33,9 @@ class AgentSystem(threading.Thread):
         self.short_ma_period = 50
         self.long_ma_period = 200
         self.current_signal = "HOLD"
+        self.upcoming_news = pd.DataFrame()
+        self.trading_paused_due_to_news = False
+        self.last_news_fetch_time = None
         rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, self.long_ma_period)
         if rates is not None:
             self.prices_history = [rate['close'] for rate in rates]
@@ -38,8 +44,49 @@ class AgentSystem(threading.Thread):
             print("Failed to load historical data.")
         self.nearest_expiry = None
 
+    def get_calendar_news(self):
+        now = datetime.now(pytz.utc)
+        if self.last_news_fetch_time and (now - self.last_news_fetch_time) < timedelta(hours=1):
+            return
+
+        print("Fetching economic calendar news...")
+        try:
+            from_date = now.date()
+            to_date = from_date + timedelta(days=1)
+            news_raw = mt5.calendar_news_get(from_date=from_date, to_date=to_date)
+            if news_raw:
+                df = pd.DataFrame(news_raw)
+                df['time'] = pd.to_datetime(df['time'], unit='s')
+                df = df[df['country_id'] == 'US'] # Filter for US news
+                df = df[df['importance'].isin(['HIGH', 'MODERATE'])] # High and moderate impact
+                self.upcoming_news = df
+                print(f"Found {len(df)} upcoming news events.")
+            self.last_news_fetch_time = now
+        except Exception as e:
+            print(f"Error fetching calendar news: {e}")
+
+    def is_near_high_impact_news(self):
+        if self.upcoming_news.empty:
+            self.trading_paused_due_to_news = False
+            return False
+
+        now_utc = datetime.now(pytz.utc)
+        safe_delta = timedelta(minutes=self.news_safe_mode_minutes)
+
+        for index, event in self.upcoming_news.iterrows():
+            if event['importance'] == 'HIGH':
+                event_time = event['time'].to_pydatetime().replace(tzinfo=pytz.utc)
+                if (now_utc >= event_time - safe_delta) and (now_utc <= event_time + safe_delta):
+                    print(f"HOLDING due to high-impact news: {event['event']} at {event_time}")
+                    self.trading_paused_due_to_news = True
+                    return True
+        
+        self.trading_paused_due_to_news = False
+        return False
+
     def run(self):
         print(f"Starting real-time trading for {self.symbol}...")
+        self.get_calendar_news() # Initial fetch
         selected = mt5.symbol_select(self.symbol, True)
         if not selected:
             print(f"Failed to select {self.symbol}, error code =", mt5.last_error())
@@ -67,6 +114,7 @@ class AgentSystem(threading.Thread):
 
         try:
             while True:
+                self.get_calendar_news() # Periodic fetch
                 if self.is_trading_hours():
                     current_price = self.get_current_price()
                     if current_price == 0:
@@ -80,6 +128,14 @@ class AgentSystem(threading.Thread):
                     ma_signal = self.get_signal()
                     decision_output = self.make_decision(self.options_symbol, self.nearest_expiry)
                     
+                    setups_status = decision_output.get("setups", {})
+                    active_setups_count = sum(1 for status in setups_status.values() if status['active'])
+
+                    if active_setups_count == 6:
+                        self.lot_size = 0.1
+                    else:
+                        self.lot_size = 0.01
+                    
                     agent_decision = decision_output.get("decision", "HOLD")
                     target_price = decision_output.get("target_price")
 
@@ -89,6 +145,10 @@ class AgentSystem(threading.Thread):
                     elif ma_signal == "SELL" and agent_decision == "SELL":
                         final_action = "SELL"
                     
+                    if self.is_near_high_impact_news():
+                        print("Trading paused due to upcoming high-impact news.")
+                        final_action = "HOLD"
+
                     if final_action != "HOLD":
                         print(f"Signal: {final_action}. Current price: {current_price:.5f}. Target: {target_price}")
                         self.execute_trade(final_action, target_price)
@@ -148,12 +208,43 @@ class AgentSystem(threading.Thread):
 
         order_type = mt5.ORDER_TYPE_BUY_STOP if action == "BUY" else mt5.ORDER_TYPE_SELL_STOP
 
+        account_balance = self.get_account_balance()
+        if account_balance <= 0:
+            print("Account balance is zero or negative. Cannot calculate risk.")
+            return
+
+        symbol_info = mt5.symbol_info(self.symbol)
+        if not symbol_info:
+            print(f"Could not get symbol info for {self.symbol}")
+            return
+
+        tick_value = symbol_info.trade_tick_value
+        tick_size = symbol_info.trade_tick_size
+
+        if tick_value <= 0 or self.lot_size <= 0:
+            print("Invalid tick value or lot size. Cannot calculate stops.")
+            return
+
+        tick_value_for_lot = tick_value * self.lot_size
+        stop_loss_money = account_balance * (self.stop_loss_percent / 100.0)
+        stop_loss_in_ticks = stop_loss_money / tick_value_for_lot
+        stop_loss_distance = stop_loss_in_ticks * tick_size
+
+        if action == "BUY":
+            stop_loss_price = target_price - stop_loss_distance
+            take_profit_price = target_price + (stop_loss_distance * self.risk_reward_ratio)
+        else:  # SELL
+            stop_loss_price = target_price + stop_loss_distance
+            take_profit_price = target_price - (stop_loss_distance * self.risk_reward_ratio)
+
         request = {
             "action": mt5.TRADE_ACTION_PENDING,
             "symbol": self.symbol,
             "volume": self.lot_size,
             "type": order_type,
             "price": target_price,
+            "sl": round(stop_loss_price, symbol_info.digits),
+            "tp": round(take_profit_price, symbol_info.digits),
             "magic": 234000,
             "comment": f"python agent {action} stop",
             "type_time": mt5.ORDER_TIME_GTC,
@@ -324,7 +415,7 @@ class AgentSystem(threading.Thread):
         current_time_ny = datetime.now(ny_timezone)
         if not (0 <= current_time_ny.weekday() <= 4):
             return False
-        market_open = datetime_time(9, 30, 0)
+        market_open = datetime_time(9, 0, 0)
         market_close = datetime_time(16, 0, 0)
         return market_open <= current_time_ny.time() < market_close
 
