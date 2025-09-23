@@ -1,0 +1,75 @@
+===============================================
+     EzOptions Analytics Pro - COMO USAR
+===============================================
+
+PROBLEMA RESOLVIDO:
+   "Windows nao pode encontrar 'streamlit'"
+
+SOLUCAO APLICADA:
+   Usar "python -m streamlit" em vez de so "streamlit"
+
+===============================================
+           INSTRUCOES DE USO
+===============================================
+
+1. EXECUTE APENAS ESTE ARQUIVO:
+   USAR_ESTE.bat
+
+2. O QUE ELE FAZ:
+   - Verifica se Python esta instalado
+   - Instala automaticamente todas as dependencias
+   - Abre o dashboard em portugues
+   - Conecta automaticamente ao MT5
+   - Inicia os agentes de trading
+
+3. RESULTADO:
+   Dashboard abre em: http://localhost:8502
+   Conta: FBS-Demo (USD 20,000)
+   Tudo em portugues do Brasil
+   Sistema totalmente automatico
+
+===============================================
+         SE DER ALGUM PROBLEMA
+===============================================
+
+PROBLEMA 1: "Python nao encontrado"
+SOLUCAO:
+- Baixe Python em: https://python.org/downloads/
+- Marque "Add Python to PATH" durante a instalacao
+- Reinicie o computador
+
+PROBLEMA 2: "Erro de dependencias"
+SOLUCAO:
+- Abra prompt como administrador
+- Execute: python -m pip install --upgrade streamlit
+
+PROBLEMA 3: "Porta em uso"
+SOLUCAO:
+- Feche outras aplicacoes que usem porta 8502
+- Ou reinicie o computador
+
+===============================================
+            ARQUIVOS PRINCIPAIS
+===============================================
+
+USAR_ESTE.bat              <- EXECUTE APENAS ESTE
+dashboard_completo.py       <- Dashboard em portugues
+trading_setups.py          <- Sistema de 6 setups
+real_agent_system.py       <- Agentes de trading
+.env                       <- Configuracoes da conta
+
+===============================================
+               STATUS ATUAL
+===============================================
+
+Sistema 100% pronto
+Dashboard em portugues
+Conexao automatica MT5
+Agentes automaticos
+Problema do streamlit corrigido
+Tudo funcionando
+
+===============================================
+            BASTA EXECUTAR:
+               USAR_ESTE.bat
+===============================================

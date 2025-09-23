@@ -1,0 +1,113 @@
+============================================================
+         EzOptions Analytics Pro - Trading Real
+              CONECTANDO COM SUA CONTA FBS
+============================================================
+
+🚀 PASSO A PASSO COMPLETO
+==========================
+
+PASSO 1: INSTALAR DEPENDENCIAS
+-------------------------------
+1. Clique duplo em: INSTALAR_REAL.bat
+2. Aguarde instalacao completa (MetaTrader5 + yfinance + Streamlit)
+
+PASSO 2: ABRIR METATRADER 5
+----------------------------
+1. Abra seu MetaTrader 5 FBS
+2. Faca login com suas credenciais (103486755)
+3. Certifique-se que esta conectado
+
+PASSO 3: INICIAR SISTEMA COMPLETO
+----------------------------------
+1. Clique duplo em: INICIAR_TRADING.bat
+2. O sistema vai:
+   • Conectar com sua conta real FBS-Demo
+   • Abrir dashboard no navegador
+   • Iniciar agentes de trading automatico
+   • Mostrar seus dados reais da conta
+
+🌐 ACESSAR DASHBOARD
+====================
+• URL: http://localhost:8501
+• Mostra seus dados REAIS da conta MT5
+• Diagnostico completo de problemas
+• Status dos 6 setups em tempo real
+
+📊 O QUE VOCE VERA
+===================
+✅ DADOS REAIS DA SUA CONTA:
+   • Saldo atual
+   • Equity
+   • Margem livre
+   • Posicoes abertas
+   • Lucro/prejuizo real
+
+✅ DIAGNOSTICO DE PROBLEMAS:
+   • Por que agentes nao estao operando
+   • Status da conexao MT5
+   • Configuracoes de trading automatico
+   • Simbolos disponiveis
+
+✅ AGENTES AUTOMATICOS:
+   • 6 setups de trading implementados
+   • Sistema de confianca 90%/60%
+   • Execucao automatica de trades
+   • Gerenciamento de risco
+
+🔧 SOLUCAO DE PROBLEMAS
+========================
+
+PROBLEMA: "Agentes nao fazem trades"
+SOLUCOES:
+1. Verifique se "Permitir trading automatico" esta HABILITADO no MT5
+2. Adicione US100 ao Market Watch
+3. Verifique se esta em horario de mercado (9h30-15h30 NY)
+4. Confirme que tem margem livre suficiente
+
+PROBLEMA: "MT5 nao conecta"
+SOLUCOES:
+1. Verifique credenciais no arquivo .env
+2. Confirme que MT5 esta aberto e logado
+3. Teste conexao manual no MT5
+
+PROBLEMA: "Sem dados na conta"
+SOLUCOES:
+1. Clique "Conectar MT5" no dashboard
+2. Aguarde alguns segundos
+3. Clique "Diagnosticar Problemas"
+
+🎯 CONFIGURACOES DE TRADING
+============================
+• Simbolo: US100 (NASDAQ 100)
+• Magic Number: 234001
+• Lot Size: 0.01 (micro lote)
+• Max Posicoes: 5
+• Stop Loss: 1% do preco
+• Take Profit: 2% do preco
+• Confianca minima: 60%
+
+⚠️  AVISOS IMPORTANTES
+======================
+1. Sistema configurado para FBS-Demo (conta demo)
+2. Trades sao executados automaticamente quando setups atingem 60%+ confianca
+3. Sempre monitore suas posicoes
+4. Para parar trading: feche o sistema
+
+📈 MONITORAMENTO
+=================
+• Dashboard atualiza automaticamente a cada 10 segundos
+• Agentes analisam mercado a cada 30 segundos
+• Logs detalhados em: trading_agent.log
+• Todas as operacoes ficam registradas
+
+============================================================
+      SISTEMA PRONTO! EXECUTE: INICIAR_TRADING.bat
+============================================================
+
+🔥 RESULTADO ESPERADO:
+- Dashboard abrira mostrando SUA conta real FBS
+- Agentes comecarao a analisar e operar automaticamente
+- Voce vera trades sendo executados no MT5
+- Sistema funcionara 24/5 (segunda a sexta)
+
+Para suporte: Verifique o arquivo trading_agent.log

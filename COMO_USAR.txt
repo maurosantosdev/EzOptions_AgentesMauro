@@ -1,0 +1,88 @@
+============================================================
+      EzOptions Analytics Pro - Como Usar
+============================================================
+
+🚀 PASSO 1: INSTALAR DEPENDENCIAS
+----------------------------------
+
+1. Clique duplo no arquivo: INSTALAR.bat
+   (Isso vai instalar Streamlit, Plotly e Pandas)
+
+2. Aguarde a instalacao terminar
+
+🌐 PASSO 2: ABRIR O DASHBOARD
+-----------------------------
+
+Opcao A (MAIS FACIL):
+   • Clique duplo no arquivo: START.bat
+
+Opcao B (Prompt de comando):
+   • Abra o CMD na pasta do projeto
+   • Execute: python start_dashboard.py
+
+Opcao C (Dashboard terminal):
+   • Execute: python standalone_dashboard.py --mode continuous
+
+📊 PASSO 3: ACESSAR
+-------------------
+
+• O dashboard abrira AUTOMATICAMENTE no navegador
+• URL: http://localhost:8501
+• Porta: 8501
+
+🎯 O QUE VOCE VERA
+------------------
+
+✅ 6 Setups de Trading Implementados:
+   1. Bullish Breakout
+   2. Bearish Breakout
+   3. Pullback Top
+   4. Pullback Bottom
+   5. Mercado Consolidado
+   6. Protecao Gamma Negativo
+
+✅ Sistema de Confianca:
+   • 90%+ = Analise Autorizada
+   • 60%+ = Operacao Autorizada
+   • <60% = Monitoramento
+
+✅ Interface Web Moderna:
+   • Graficos interativos
+   • Metricas em tempo real
+   • Indicadores de confianca
+   • Status dos setups
+
+⏹️ PARA PARAR
+-------------
+
+• Pressione Ctrl+C no terminal
+• Ou feche a janela do navegador
+
+🔧 SOLUCAO DE PROBLEMAS
+-----------------------
+
+Problema: "ModuleNotFoundError"
+Solucao: Execute INSTALAR.bat primeiro
+
+Problema: "Porta ocupada"
+Solucao: O sistema encontra automaticamente uma porta livre
+
+Problema: "Dashboard nao abre"
+Solucao: Acesse manualmente http://localhost:8501
+
+Problema: "Streamlit nao funciona"
+Solucao: Use o dashboard terminal:
+   python standalone_dashboard.py --mode continuous
+
+📁 ARQUIVOS IMPORTANTES
+-----------------------
+
+• START.bat           - Inicia o dashboard (CLIQUE DUPLO)
+• INSTALAR.bat        - Instala dependencias
+• start_dashboard.py  - Launcher Python
+• web_dashboard.py    - Dashboard web principal
+• standalone_dashboard.py - Dashboard terminal
+
+============================================================
+        SISTEMA PRONTO! CLIQUE EM START.bat
+============================================================

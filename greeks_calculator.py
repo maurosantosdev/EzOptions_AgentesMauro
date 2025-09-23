@@ -101,6 +101,9 @@ def compute_and_process_greeks(calls, puts, S, expiry_date_str, risk_free_rate):
         # Fill any remaining NaN values in Greek columns with 0 (from failed calculations)
         for col in ['calc_delta', 'calc_gamma', 'VEX', 'calc_charm']:
             df[col] = df[col].fillna(0)
+        
+        # Debugging: Print sum of Charm to check if values are non-zero
+        print(f"Debug: Sum of Charm for {flag} options: {df['Charm'].sum()}")
 
         # Calculate exposures
         df["GEX"] = df["calc_gamma"] * df["openInterest"] * 100 * S * S * 0.01

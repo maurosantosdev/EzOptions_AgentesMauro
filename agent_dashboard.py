@@ -1,156 +1,108 @@
 import streamlit as st
-from streamlit.components.v1 import html
 import pandas as pd
 from datetime import datetime
 import pytz
 import time
 from agent_system import AgentSystem
-from ezoptions import compute_greeks_and_charts, create_exposure_bar_chart
+from chart_utils import create_exposure_bar_chart
+
+# --- Configuração do Agente Padrão ---
+AGENT_CONFIG = {
+    'name': 'Agent-Standard',
+    'magic_number': 234001,
+    'lot_size': 0.01,
+    'risk_reward_ratio': 3.0,
+}
 
 # --- Funções Auxiliares e de Inicialização ---
-
-def auto_refresh(interval_seconds):
-    """Força a atualização da página via JavaScript para manter os dados em tempo real."""
-    js_code = f"""
-        <script>
-            setTimeout(function() {{
-                window.location.reload();
-            }}, {interval_seconds * 1000});
-        </script>
-    """
-    html(js_code, height=0, width=0)
-
 def initialize_session_state():
-    """Inicializa as variáveis de estado da sessão para evitar erros."""
     defaults = {
-        'call_color': '#2E8B57',  # SeaGreen
-        'put_color': '#B22222',   # FireBrick
+        'call_color': '#2E8B57',
+        'put_color': '#B22222',
         'show_calls': True,
         'show_puts': True,
         'show_net': True,
         'chart_type': 'Bar',
         'gex_type': 'Absolute',
         'strike_range': 5.0,
-        'chart_text_size': 12
+        'chart_text_size': 12,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
 def get_agent_controller():
-    """Gerencia a instância do controlador do agente no estado da sessão."""
+    """Initializes and returns the agent controller from session state."""
     if 'agent_controller' not in st.session_state:
-        st.info("Iniciando o controlador de agentes. A primeira carga pode levar um momento...")
-        controller = AgentSystem()
+        # Starts the agent thread in the background and immediately returns.
+        # The dashboard will update asynchronously.
+        controller = AgentSystem(AGENT_CONFIG)
         controller.start()
         st.session_state.agent_controller = controller
-        time.sleep(7) # Pausa para dar tempo à thread de buscar a primeira data de expiração
-        st.rerun()
     return st.session_state.agent_controller
 
 # --- Renderização do Painel ---
-
 def run_dashboard():
-    """Executa a renderização completa do painel do Streamlit."""
     st.set_page_config(layout="wide", initial_sidebar_state="expanded")
     initialize_session_state()
     
-    st.title("🤖 Painel de Controle dos Agentes de IA")
+    st.title("🤖 Painel de Controle do Agente de IA")
 
     with st.sidebar:
         st.header("Configurações do Dashboard")
-        refresh_rate = st.slider("Taxa de Atualização (segundos)", 15, 300, 60, key="refresh_rate")
+        refresh_rate = st.slider("Taxa de Atualização (segundos)", 10, 120, 30, key="refresh_rate")
 
     controller = get_agent_controller()
 
     # --- Cabeçalho ---
+    # These will display immediately and update on each refresh.
     ny_tz = pytz.timezone("America/New_York")
     now_ny = datetime.now(ny_tz)
     is_trading = controller.is_trading_hours()
     status_color = "#28a745" if is_trading else "#ffc107"
-    connection_status = "Conectado (MT5)" if controller.is_mt5_connected() else "Desconectado"
+    connection_status = "Conectado" if controller.is_mt5_connected() else "Desconectado"
     market_status = "Aberto" if is_trading else "Fechado"
-    trading_status = "Pausado (Notícia)" if controller.trading_paused_due_to_news else "Ativo"
-    trading_status_color = "#ffc107" if controller.trading_paused_due_to_news else "#28a745"
 
     st.markdown(f'''
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 150px; margin-bottom: 10px;"><h3>Horário NY: {now_ny.strftime('%H:%M:%S')}</h3></div>
-        <div style="flex: 1; min-width: 150px; margin-bottom: 10px; text-align: center;"><h3>Mercado: <span style="color: {status_color};">{market_status}</span></h3></div>
-        <div style="flex: 1; min-width: 150px; margin-bottom: 10px; text-align: center;"><h3>Trading: <span style="color: {trading_status_color};">{trading_status}</span></h3></div>
-        <div style="flex: 1; min-width: 150px; margin-bottom: 10px; text-align: right;"><h3>Conexão: <span style="color: #17a2b8;">{connection_status}</span></h3></div>
+        <div style="flex: 1; min-width: 200px; margin-bottom: 10px;"><h3>Horário NY: {now_ny.strftime('%H:%M:%S')}</h3></div>
+        <div style="flex: 1; min-width: 200px; margin-bottom: 10px; text-align: center;"><h3>Mercado: <span style="color: {status_color};">{market_status}</span></h3></div>
+        <div style="flex: 1; min-width: 200px; margin-bottom: 10px; text-align: right;"><h3>Conexão: <span style="color: #17a2b8;">{connection_status}</span></h3></div>
     </div><hr/>
     ''', unsafe_allow_html=True)
 
     # --- Cards de Métricas ---
-    cols = st.columns(4)
-    with cols[0]:
-        st.metric("Saldo da Conta", f"${controller.get_account_balance():,.2f}")
-    with cols[1]:
-        st.metric("P&L Total", f"${controller.get_total_profit_loss():,.2f}")
-    with cols[2]:
-        st.metric("Posições Ativas", controller.get_active_positions_count())
-    with cols[3]:
-        st.metric("Taxa de Acertos", f"{controller.get_win_rate():.2f}%")
+    # These will show "Carregando..." initially and populate as the agent provides data.
+    is_ready = controller.is_mt5_connected()
+    balance = f"${controller.get_account_balance():,.2f}" if is_ready else "Carregando..."
+    equity = f"${controller.get_account_equity():,.2f}" if is_ready else "Carregando..."
+    margin = f"${controller.get_free_margin():,.2f}" if is_ready else "Carregando..."
+    pnl = f"${controller.get_total_profit_loss():,.2f}" if is_ready else "Carregando..."
+    positions = controller.get_active_positions_count() if is_ready else "Carregando..."
 
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    # --- Calendário Econômico ---
-    st.subheader("📰 Calendário Econômico")
-    news_df = controller.upcoming_news
-    if not news_df.empty:
-        display_df = news_df[['time', 'event', 'importance', 'country']].copy()
-        display_df.rename(columns={
-            'time': 'Horário (UTC)',
-            'event': 'Evento',
-            'importance': 'Impacto',
-            'country': 'País'
-        }, inplace=True)
-        
-        display_df['Horário (UTC)'] = display_df['Horário (UTC)'].dt.strftime('%Y-%m-%d %H:%M')
-        
-        st.dataframe(display_df, use_container_width=True)
-    else:
-        st.info("Nenhum evento econômico relevante para as próximas 24 horas.")
+    cols = st.columns(5)
+    cols[0].metric("Saldo", balance)
+    cols[1].metric("Capital Líquido", equity)
+    cols[2].metric("Margem Livre", margin)
+    cols[3].metric("P&L Aberto", pnl)
+    cols[4].metric("Posições Ativas", positions)
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
     # --- Análise de Setups e Decisão do Agente ---
     st.subheader("📊 Análise de Setups e Decisão do Agente")
     
-    options_ticker = controller.options_symbol
-    expiry_date_str = controller.get_nearest_expiry()
+    decision_output = controller.latest_decision
 
-    if not (controller.options_analysis_enabled and expiry_date_str):
-        st.info("Aguardando dados de expiração ou análise de opções desabilitada.")
+    if not decision_output:
+        st.info(f"Aguardando a primeira análise do agente para {controller.options_symbol}... O painel será atualizado automaticamente.")
     else:
-        decision_output = controller.make_decision(options_ticker, expiry_date_str)
-        setups_status = decision_output["setups"]
-        agent_decision = decision_output["decision"]
-        target_price = decision_output.get("target_price")
+        setups_status = decision_output.get("setups", {})
+        calls_processed = decision_output.get("calls")
+        puts_processed = decision_output.get("puts")
+        S_greeks = decision_output.get("S")
 
-        # --- Card de Decisão do Agente ---
-        decision_color = "#50fa7b" if agent_decision == "BUY" else "#ff5555" if agent_decision == "SELL" else "#f1fa8c"
-        decision_text = f"{agent_decision}" 
-        if target_price:
-            decision_text += f" @ {target_price:.2f}"
-
-        st.markdown(f'''
-        <div style="background-color: #282a36; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);">
-            <h3 style="color: #f8f8f2; margin-bottom: 10px;">Decisão do Agente</h3>
-            <p style="color: {decision_color}; font-size: 28px; font-weight: bold;">{decision_text}</p>
-        </div>
-        ''', unsafe_allow_html=True)
-
-        # --- Gráficos dos Setups ---
-        with st.spinner("Calculando gregos e gerando gráficos..."):
-            @st.cache_data(ttl=60)
-            def get_chart_data(ticker, expiry):
-                return compute_greeks_and_charts(ticker, expiry, "dashboard_setups", controller.get_current_price())
-            
-            calls_processed, puts_processed, S_greeks, t_greeks, _, _ = get_chart_data(options_ticker, expiry_date_str)
-
-        if calls_processed is not None and puts_processed is not None:
+        if calls_processed is not None and puts_processed is not None and S_greeks is not None:
             setup_cols = st.columns(3)
             setup_map = {
                 "bullish_breakout": "Bullish Breakout",
@@ -164,24 +116,23 @@ def run_dashboard():
             col_idx = 0
             for key, name in setup_map.items():
                 with setup_cols[col_idx]:
-                    status = setups_status.get(key, {})
-                    active = status.get('active', False)
-                    details = status.get('details', 'N/A')
+                    # FIX: Unpack the tuple directly
+                    status_tuple = setups_status.get(key, (False, 'N/A', None, None))
+                    active = status_tuple[0]
+                    details = status_tuple[1]
                     expander_title = f"Setup: {name} ({'Ativo' if active else 'Inativo'})"
                     
                     with st.expander(expander_title):
                         st.markdown(f"**Detalhes:** {details}")
-                        # Reduzindo a altura dos gráficos para 350px
                         fig_gex = create_exposure_bar_chart(calls_processed, puts_processed, "GEX", "Gamma Exposure", S_greeks, height=350)
                         st.plotly_chart(fig_gex, use_container_width=True, key=f"gex_{key}")
-                        fig_dex = create_exposure_bar_chart(calls_processed, puts_processed, "DEX", "Delta Exposure", S_greeks, height=350)
-                        st.plotly_chart(fig_dex, use_container_width=True, key=f"dex_{key}")
                 col_idx = (col_idx + 1) % 3
         else:
-            st.warning("Não foi possível carregar os dados de opções para os setups.")
+            st.warning("Dados de opções ainda não disponíveis na última análise do agente.")
 
     # --- Atualização Automática ---
-    auto_refresh(refresh_rate)
+    time.sleep(refresh_rate)
+    st.rerun()
 
 if __name__ == "__main__":
     run_dashboard()

@@ -3,413 +3,445 @@ import time
 import os
 from dotenv import load_dotenv
 import threading
-from datetime import datetime, time as datetime_time, timedelta
+from datetime import datetime, time as datetime_time
 import pytz
 import yfinance as yf
 import pandas as pd
 from greeks_calculator import compute_and_process_greeks
+from trading_setups import TradingSetupAnalyzer, SetupType
+
+# Lock global para sincronizar o acesso à API do MT5
+mt5_lock = threading.Lock()
 
 class AgentSystem(threading.Thread):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
         load_dotenv()
-        if not mt5.initialize(
-            login=int(os.getenv("MT5_LOGIN")),
-            server=os.getenv("MT5_SERVER"),
-            password=os.getenv("MT5_PASSWORD")
-        ):
-            print("initialize() failed, error code =", mt5.last_error())
-            quit()
-        print("Agent System Initialized and Connected to MetaTrader 5.")
-        self.last_price = 0
-        self.lot_size = 0.01
-        self.stop_loss_percent = 1.0
-        self.risk_reward_ratio = 2.0
-        self.news_safe_mode_minutes = 15
-        self.symbol = "US100"
-        self.options_symbol = "QQQ"
+
+        # --- Configuration ---
+        self.name = config.get('name', 'DefaultAgent')
+        self.symbol = config.get('symbol', 'US100')
+        self.magic_number = config.get('magic_number', 234000)
+        self.lot_size = config.get('lot_size', 0.01)
+        self.options_symbol = config.get('options_symbol', "QQQ")
+
+        # --- Cached State ---
+        self.account_info = None
+        self.total_pnl = 0
+        self.active_positions_count = 0
+        self.latest_decision = {}
+        self.is_connected = False
+
+        # --- MT5 Initialization ---
+        with mt5_lock:
+            if not mt5.initialize(
+                login=int(os.getenv("MT5_LOGIN")),
+                server=os.getenv("MT5_SERVER"),
+                password=os.getenv("MT5_PASSWORD")
+            ):
+                print(f"[{self.name}] initialize() failed, error code =", mt5.last_error())
+                self.is_connected = False
+            else:
+                self.is_connected = True
+                print(f"[{self.name}] Agent System Initialized and Connected to MetaTrader 5.")
+
+        # --- Strategy Parameters ---
         self.options_analysis_enabled = True
-        self.prices_history = []
-        self.short_ma_period = 50
-        self.long_ma_period = 200
-        self.current_signal = "HOLD"
-        self.upcoming_news = pd.DataFrame()
-        self.trading_paused_due_to_news = False
-        self.last_news_fetch_time = None
-        rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, self.long_ma_period)
-        if rates is not None:
-            self.prices_history = [rate['close'] for rate in rates]
-            print(f"Loaded {len(self.prices_history)} historical prices.")
-        else:
-            print("Failed to load historical data.")
         self.nearest_expiry = None
+        self.GEX_THRESHOLD = 10000
+        self.buy_limit_sl_percent = 0.001
+        self.buy_limit_tp_percent = 0.0001
+        self.sell_limit_sl_percent = 0.0001
+        self.sell_limit_tp_percent = 0.0001
+        self.buy_stop_sl_percent = 0.001
+        self.buy_stop_tp_percent = 0.0001
+        self.sell_stop_sl_percent = 0.0001
+        self.sell_stop_tp_percent = 0.0001
+        self.positions_closed_today = False
 
-    def get_calendar_news(self):
-        now = datetime.now(pytz.utc)
-        if self.last_news_fetch_time and (now - self.last_news_fetch_time) < timedelta(hours=1):
-            return
+        # --- Trading Setups System ---
+        self.setup_analyzer = TradingSetupAnalyzer()
+        self.current_setups = {}
+        self.vwap_data = {}
 
-        print("Fetching economic calendar news...")
-        try:
-            from_date = now.date()
-            to_date = from_date + timedelta(days=1)
-            news_raw = mt5.calendar_news_get(from_date=from_date, to_date=to_date)
-            if news_raw:
-                df = pd.DataFrame(news_raw)
-                df['time'] = pd.to_datetime(df['time'], unit='s')
-                df = df[df['country_id'] == 'US'] # Filter for US news
-                df = df[df['importance'].isin(['HIGH', 'MODERATE'])] # High and moderate impact
-                self.upcoming_news = df
-                print(f"Found {len(df)} upcoming news events.")
-            self.last_news_fetch_time = now
-        except Exception as e:
-            print(f"Error fetching calendar news: {e}")
+    def _update_account_state(self):
+        """Fetches all account and position data from MT5 and caches it."""
+        if not self.is_connected: return
+        with mt5_lock:
+            self.account_info = mt5.account_info()
+            positions = mt5.positions_get(magic=self.magic_number)
+            self.is_connected = mt5.terminal_info() is not None
 
-    def is_near_high_impact_news(self):
-        if self.upcoming_news.empty:
-            self.trading_paused_due_to_news = False
-            return False
-
-        now_utc = datetime.now(pytz.utc)
-        safe_delta = timedelta(minutes=self.news_safe_mode_minutes)
-
-        for index, event in self.upcoming_news.iterrows():
-            if event['importance'] == 'HIGH':
-                event_time = event['time'].to_pydatetime().replace(tzinfo=pytz.utc)
-                if (now_utc >= event_time - safe_delta) and (now_utc <= event_time + safe_delta):
-                    print(f"HOLDING due to high-impact news: {event['event']} at {event_time}")
-                    self.trading_paused_due_to_news = True
-                    return True
-        
-        self.trading_paused_due_to_news = False
-        return False
+        if positions:
+            self.active_positions_count = len(positions)
+            self.total_pnl = sum(p.profit for p in positions)
+        else:
+            self.active_positions_count = 0
+            self.total_pnl = 0
 
     def run(self):
-        print(f"Starting real-time trading for {self.symbol}...")
-        self.get_calendar_news() # Initial fetch
-        selected = mt5.symbol_select(self.symbol, True)
+        if not self.is_connected: return
+        print(f"[{self.name}] Starting real-time trading for {self.symbol}...")
+        with mt5_lock:
+            selected = mt5.symbol_select(self.symbol, True)
         if not selected:
-            print(f"Failed to select {self.symbol}, error code =", mt5.last_error())
-            mt5.shutdown()
+            with mt5_lock:
+                print(f"[{self.name}] Failed to select {self.symbol}, error code =", mt5.last_error())
+            self.shutdown()
             return
         
         try:
             stock = yf.Ticker(self.options_symbol)
-            available_expiries = stock.options
-            if not available_expiries:
-                print(f"No options expirations found for {self.options_symbol}. Options analysis will be disabled.")
-                self.options_analysis_enabled = False
-                self.nearest_expiry = None
-            else:
-                self.nearest_expiry = available_expiries[0]
-                print(f"Using nearest expiry for options analysis: {self.nearest_expiry}")
-                self.options_analysis_enabled = True
+            self.nearest_expiry = stock.options[0]
+            print(f"[{self.name}] Using nearest expiry for options analysis: {self.nearest_expiry}")
         except Exception as e:
-            print(f"Could not fetch options expirations: {e}")
+            print(f"[{self.name}] Could not fetch options expirations: {e}")
             self.options_analysis_enabled = False
-            self.nearest_expiry = None
-
-        self.last_price = self.get_current_price()
-        print(f"Initial price for {self.symbol}: {self.last_price}")
 
         try:
-            while True:
-                self.get_calendar_news() # Periodic fetch
+            while self.is_connected:
+                self._update_account_state()
+
                 if self.is_trading_hours():
-                    current_price = self.get_current_price()
-                    if current_price == 0:
-                        time.sleep(1)
-                        continue
-
-                    self.prices_history.append(current_price)
-                    if len(self.prices_history) > self.long_ma_period:
-                        self.prices_history.pop(0)
-
-                    ma_signal = self.get_signal()
                     decision_output = self.make_decision(self.options_symbol, self.nearest_expiry)
+                    self.latest_decision = decision_output
                     
-                    setups_status = decision_output.get("setups", {})
-                    active_setups_count = sum(1 for status in setups_status.values() if status['active'])
-
-                    if active_setups_count == 6:
-                        self.lot_size = 0.1
-                    else:
-                        self.lot_size = 0.01
+                    orders_to_place = decision_output.get("orders", [])
+                    if orders_to_place:
+                        self.execute_volatility_trade(orders_to_place)
                     
-                    agent_decision = decision_output.get("decision", "HOLD")
-                    target_price = decision_output.get("target_price")
-
-                    final_action = "HOLD"
-                    if ma_signal == "BUY" and agent_decision == "BUY":
-                        final_action = "BUY"
-                    elif ma_signal == "SELL" and agent_decision == "SELL":
-                        final_action = "SELL"
-                    
-                    if self.is_near_high_impact_news():
-                        print("Trading paused due to upcoming high-impact news.")
-                        final_action = "HOLD"
-
-                    if final_action != "HOLD":
-                        print(f"Signal: {final_action}. Current price: {current_price:.5f}. Target: {target_price}")
-                        self.execute_trade(final_action, target_price)
-                        self.current_signal = final_action
-                    else:
-                        print(f"Signal: HOLD. Current price: {current_price:.5f}")
-                        self.current_signal = "HOLD"
-
-                    self.last_price = current_price
+                    self.monitor_and_manage_positions()
                     time.sleep(5)
                 else:
-                    print("Fora do horário de negociação. Aguardando...")
+                    ny_timezone = pytz.timezone('America/New_York')
+                    current_time_ny = datetime.now(ny_timezone).time()
+                    market_close_time = datetime_time(16, 0, 0)
+                    market_open_time = datetime_time(9, 0, 0)
+
+                    if current_time_ny >= market_close_time and not self.positions_closed_today:
+                        print(f"[{self.name}] Market close time. Closing all open positions.")
+                        self.close_all_positions()
+                        self.positions_closed_today = True
+                    elif current_time_ny < market_open_time:
+                        self.positions_closed_today = False
+                    
                     time.sleep(60)
         except KeyboardInterrupt:
-            print("\nStopping trading agent.")
+            print(f"\n[{self.name}] Stopping trading agent.")
         finally:
             self.shutdown()
 
-    def calculate_sma(self, prices, period):
-        if len(prices) < period:
-            return 0
-        return sum(prices[-period:]) / period
+    def make_decision(self, ticker, expiry_date_str):
+        calls, puts, S, t = self._get_processed_options_data(ticker, expiry_date_str)
+        default_response = {"orders": [], "setups": {}, "calls": None, "puts": None, "S": None}
+        if calls is None or puts is None: return default_response
 
-    def get_signal(self):
-        if len(self.prices_history) < self.long_ma_period:
-            return "HOLD"
-        short_ma = self.calculate_sma(self.prices_history, self.short_ma_period)
-        long_ma = self.calculate_sma(self.prices_history, self.long_ma_period)
-        if short_ma > long_ma and self.current_signal != "BUY":
-            return "BUY"
-        elif short_ma < long_ma and self.current_signal != "SELL":
-            return "SELL"
-        else:
-            return "HOLD"
+        # Update VWAP data (simulação - em produção viria de um feed de dados)
+        self._update_vwap_data(S)
 
-    def get_current_price(self):
-        tick = mt5.symbol_info_tick(self.symbol)
-        return tick.ask if tick else 0
+        # Analyze all 6 setups using the new system
+        setups_results = self.setup_analyzer.analyze_all_setups(calls, puts, S, self.vwap_data)
+        self.current_setups = setups_results
 
-    def execute_trade(self, action, target_price):
-        if action == "HOLD" or target_price is None:
-            return
+        # Convert to legacy format for compatibility while transitioning
+        legacy_setups = {}
+        orders_to_place = []
 
-        pending_orders = mt5.orders_get(symbol=self.symbol)
+        for setup_key, setup_result in setups_results.items():
+            # Convert to legacy tuple format (active, details, target_price, order_kind)
+            order_kind = self._get_order_kind_from_setup(setup_result.setup_type, setup_result.active)
+            legacy_setups[setup_key] = (
+                setup_result.active,
+                setup_result.details,
+                setup_result.target_price,
+                order_kind
+            )
+
+            # Only place orders for setups with sufficient confidence
+            if setup_result.active and setup_result.target_price is not None and order_kind is not None:
+                action = self._get_action_from_setup(setup_result.setup_type)
+                orders_to_place.append((action, setup_result.target_price, order_kind))
+
+        return {
+            "orders": orders_to_place,
+            "setups": legacy_setups,
+            "setups_detailed": setups_results,  # New detailed format
+            "calls": calls,
+            "puts": puts,
+            "S": S
+        }
+
+    def execute_volatility_trade(self, orders_to_place):
+        with mt5_lock:
+            pending_orders = mt5.orders_get(symbol=self.symbol, magic=self.magic_number)
         if pending_orders:
             for order in pending_orders:
                 self.cancel_order(order.ticket)
 
-        positions = mt5.positions_get(symbol=self.symbol)
-        if positions:
-            pos_type = positions[0].type
-            if (action == "BUY" and pos_type == 1) or (action == "SELL" and pos_type == 0):
-                self.close_position(positions[0])
-            else:
-                print(f"Position already open in the same direction for {self.symbol}. No new order placed.")
-                return
+        num_orders = 5
+        spacing = 0.001
+        for action, target_price, order_kind in orders_to_place:
+            grid_volume = self.lot_size / num_orders
+            with mt5_lock:
+                symbol_info = mt5.symbol_info(self.symbol)
+            if symbol_info and grid_volume < symbol_info.volume_min:
+                grid_volume = symbol_info.volume_min
 
-        order_type = mt5.ORDER_TYPE_BUY_STOP if action == "BUY" else mt5.ORDER_TYPE_SELL_STOP
+            for i in range(num_orders):
+                price_multiplier = 1 + (i * spacing) if order_kind in ["BUY_STOP", "SELL_LIMIT"] else 1 - (i * spacing)
+                grid_price = target_price * price_multiplier
+                self.place_pending_order(action, grid_price, order_kind, volume=grid_volume)
 
-        account_balance = self.get_account_balance()
-        if account_balance <= 0:
-            print("Account balance is zero or negative. Cannot calculate risk.")
+    def place_pending_order(self, action, target_price, order_kind, from_greeks=True, volume=None):
+        with mt5_lock:
+            symbol_info = mt5.symbol_info(self.symbol)
+        if not symbol_info: return
+
+        order_volume = volume if volume is not None else self.lot_size
+        if order_volume < symbol_info.volume_min:
+            order_volume = symbol_info.volume_min
+
+        converted_target_price = self._convert_price_if_needed(target_price, from_greeks)
+        if converted_target_price is None: return
+
+        order_type = self._get_order_type(order_kind)
+        if order_type is None: return
+
+        stop_loss_price, take_profit_price = self._calculate_sl_tp(order_kind, converted_target_price)
+        
+        if not self._validate_order_price(order_type, converted_target_price):
             return
 
-        symbol_info = mt5.symbol_info(self.symbol)
-        if not symbol_info:
-            print(f"Could not get symbol info for {self.symbol}")
-            return
+        request = self._build_order_request(action, order_volume, order_type, converted_target_price, stop_loss_price, take_profit_price)
+        
+        with mt5_lock:
+            result = mt5.order_send(request)
 
-        tick_value = symbol_info.trade_tick_value
-        tick_size = symbol_info.trade_tick_size
-
-        if tick_value <= 0 or self.lot_size <= 0:
-            print("Invalid tick value or lot size. Cannot calculate stops.")
-            return
-
-        tick_value_for_lot = tick_value * self.lot_size
-        stop_loss_money = account_balance * (self.stop_loss_percent / 100.0)
-        stop_loss_in_ticks = stop_loss_money / tick_value_for_lot
-        stop_loss_distance = stop_loss_in_ticks * tick_size
-
-        if action == "BUY":
-            stop_loss_price = target_price - stop_loss_distance
-            take_profit_price = target_price + (stop_loss_distance * self.risk_reward_ratio)
-        else:  # SELL
-            stop_loss_price = target_price + stop_loss_distance
-            take_profit_price = target_price - (stop_loss_distance * self.risk_reward_ratio)
-
-        request = {
-            "action": mt5.TRADE_ACTION_PENDING,
-            "symbol": self.symbol,
-            "volume": self.lot_size,
-            "type": order_type,
-            "price": target_price,
-            "sl": round(stop_loss_price, symbol_info.digits),
-            "tp": round(take_profit_price, symbol_info.digits),
-            "magic": 234000,
-            "comment": f"python agent {action} stop",
-            "type_time": mt5.ORDER_TIME_GTC,
-        }
-
-        result = mt5.order_send(request)
-        if result.retcode != mt5.TRADE_RETCODE_DONE:
-            print(f"Pending order send failed, retcode={result.retcode}, result={result}")
-        else:
-            print(f"Pending order sent successfully: {action} {self.lot_size} {self.symbol} @ {target_price}")
+        self._handle_order_result(result, action, order_volume, converted_target_price, order_kind)
 
     def cancel_order(self, ticket):
-        request = {"action": mt5.TRADE_ACTION_REMOVE, "order": ticket, "comment": "python agent cancelling"}
-        result = mt5.order_send(request)
-        if result.retcode == mt5.TRADE_RETCODE_DONE:
-            print(f"Pending order #{ticket} cancelled successfully.")
-        else:
-            print(f"Failed to cancel pending order #{ticket}, retcode={result.retcode}")
+        request = {"action": mt5.TRADE_ACTION_REMOVE, "order": ticket}
+        with mt5_lock:
+            result = mt5.order_send(request)
+        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+            print(f"[{self.name}] Failed to cancel pending order #{ticket}.")
 
     def close_position(self, position):
-        price = mt5.symbol_info_tick(self.symbol).bid if position.type == 0 else mt5.symbol_info_tick(self.symbol).ask
+        with mt5_lock:
+            price = mt5.symbol_info_tick(self.symbol).bid if position.type == 0 else mt5.symbol_info_tick(self.symbol).ask
         request = {
-            "action": mt5.TRADE_ACTION_DEAL,
-            "symbol": self.symbol,
-            "volume": position.volume,
+            "action": mt5.TRADE_ACTION_DEAL, "symbol": self.symbol, "volume": position.volume,
             "type": mt5.ORDER_TYPE_SELL if position.type == 0 else mt5.ORDER_TYPE_BUY,
-            "position": position.ticket,
-            "price": price,
-            "deviation": 20,
-            "magic": 234000,
-            "comment": "closing position",
-            "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_IOC,
+            "position": position.ticket, "price": price, "deviation": 20, "magic": self.magic_number,
+            "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC,
         }
-        result = mt5.order_send(request)
-        if result.retcode != mt5.TRADE_RETCODE_DONE:
-            print(f"Failed to close position #{position.ticket}, retcode={result.retcode}")
-        else:
-            print(f"Position #{position.ticket} closed successfully.")
+        with mt5_lock:
+            result = mt5.order_send(request)
+        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+            print(f"[{self.name}] Failed to close position #{position.ticket}.")
 
+    def close_all_positions(self):
+        with mt5_lock:
+            open_positions = mt5.positions_get(symbol=self.symbol, magic=self.magic_number)
+        if open_positions:
+            for position in open_positions:
+                self.close_position(position)
+
+    def monitor_and_manage_positions(self):
+        with mt5_lock:
+            positions = mt5.positions_get(symbol=self.symbol, magic=self.magic_number)
+        if positions:
+            for position in positions:
+                if position.profit <= -0.50:
+                    self.execute_loss_recovery(position)
+
+    def execute_loss_recovery(self, position):
+        self.close_position(position)
+        with mt5_lock:
+            tick = mt5.symbol_info_tick(self.symbol)
+        if not tick: return
+
+        if position.type == mt5.ORDER_TYPE_BUY:
+            self.place_pending_order("SELL", tick.bid * (1 - 0.002), "SELL_STOP", from_greeks=False)
+        elif position.type == mt5.ORDER_TYPE_SELL:
+            self.place_pending_order("BUY", tick.ask * (1 + 0.002), "BUY_STOP", from_greeks=False)
+
+    # --- Setup Helper Methods ---
+    def _update_vwap_data(self, current_price):
+        """Simulates VWAP data - in production this would come from market data feed"""
+        # Simplified VWAP simulation (in real implementation, calculate from volume-weighted average)
+        self.vwap_data = {
+            'vwap': current_price * 0.999,  # Simulate VWAP slightly below current price
+            'std1_upper': current_price * 1.005,
+            'std1_lower': current_price * 0.995,
+            'std2_upper': current_price * 1.01,
+            'std2_lower': current_price * 0.99
+        }
+
+    def _get_order_kind_from_setup(self, setup_type, is_active):
+        """Convert setup type to order kind"""
+        if not is_active:
+            return None
+
+        order_map = {
+            SetupType.BULLISH_BREAKOUT: "BUY_STOP",
+            SetupType.BEARISH_BREAKOUT: "SELL_STOP",
+            SetupType.PULLBACK_TOP: "SELL_LIMIT",
+            SetupType.PULLBACK_BOTTOM: "BUY_LIMIT",
+            SetupType.CONSOLIDATED_MARKET: "BUY_LIMIT",  # Range trading
+            SetupType.GAMMA_NEGATIVE_PROTECTION: "BUY_STOP"
+        }
+        return order_map.get(setup_type)
+
+    def _get_action_from_setup(self, setup_type):
+        """Convert setup type to trading action"""
+        action_map = {
+            SetupType.BULLISH_BREAKOUT: "BUY",
+            SetupType.BEARISH_BREAKOUT: "SELL",
+            SetupType.PULLBACK_TOP: "SELL",
+            SetupType.PULLBACK_BOTTOM: "BUY",
+            SetupType.CONSOLIDATED_MARKET: "BUY",  # Neutral/range trading
+            SetupType.GAMMA_NEGATIVE_PROTECTION: "BUY"
+        }
+        return action_map.get(setup_type, "BUY")
+
+    def get_setup_confidence_summary(self):
+        """Return summary of all setup confidences"""
+        if not self.current_setups:
+            return {}
+
+        summary = {}
+        for setup_key, setup_result in self.current_setups.items():
+            summary[setup_key] = {
+                'confidence': setup_result.confidence,
+                'active': setup_result.active,
+                'can_analyze': setup_result.confidence >= 90.0,
+                'can_operate': setup_result.confidence >= 60.0,
+                'risk_level': setup_result.risk_level
+            }
+        return summary
+
+    # --- Legacy Strategy Evaluation Methods (kept for backward compatibility) ---
     def _evaluate_bullish_breakout(self, calls, puts, S):
-        total_gex = calls['GEX'].sum() + puts['GEX'].sum()
-        if total_gex <= 0:
-            return False, "GEX Total não é positivo.", None
-
         gex_above_price = calls[calls['strike'] > S]
-        if gex_above_price.empty:
-            return False, "Não há strikes com GEX acima do preço.", None
-        
-        max_gex_strike = gex_above_price.loc[gex_above_price['GEX'].idxmax()]['strike']
-        
-        total_dex = calls['DEX'].sum() + puts['DEX'].sum()
-        if total_dex <= 0:
-            return False, "DEX Total não é positivo.", None
+        if gex_above_price.empty or gex_above_price['GEX'].max() <= 0: return False, "", None, None
+        max_gex_strike, _ = self._find_extreme_greeks_strike(gex_above_price, 'GEX', S, "BUY_STOP")
+        if max_gex_strike is None: return False, "", None, None
+        return True, f"Target at {max_gex_strike:.2f}", max_gex_strike, "BUY_STOP"
 
-        total_charm = calls['Charm'].sum() + puts['Charm'].sum()
-        if total_charm <= 0:
-            return False, "Charm Total não é positivo.", None
+    def _evaluate_bearish_breakout(self, calls, puts, S):
+        all_gex = pd.concat([calls[['strike', 'GEX']], puts[['strike', 'GEX']]])
+        strike_max_neg_gex, _ = self._find_extreme_greeks_strike(all_gex, 'GEX', S, "SELL_STOP", is_positive_extreme=False)
+        if strike_max_neg_gex is None: return False, "", None, None
+        return True, f"Target at {strike_max_neg_gex:.2f}", strike_max_neg_gex, "SELL_STOP"
 
-        details = f"Alvo Bullish identificado no strike {max_gex_strike:.2f} (Pico de Gamma)"
-        return True, details, max_gex_strike
+    def _evaluate_pullback_top(self, calls, puts, S):
+        all_gex = pd.concat([calls[['strike', 'GEX']], puts[['strike', 'GEX']]])
+        strike_gex, val_gex = self._find_extreme_greeks_strike(all_gex, 'GEX', S, "SELL_LIMIT")
+        if strike_gex is None or val_gex < self.GEX_THRESHOLD: return False, "", None, None
+        return True, f"Target at {strike_gex:.2f}", strike_gex, "SELL_LIMIT"
 
-    def _find_extreme_greeks_strike(self, df, greek_type, price_S, above_price=True, is_positive_extreme=True):
-        if df.empty:
-            return None, None
+    def _evaluate_pullback_bottom(self, calls, puts, S):
+        all_gex = pd.concat([calls[['strike', 'GEX']], puts[['strike', 'GEX']]])
+        strike_gex, val_gex = self._find_extreme_greeks_strike(all_gex, 'GEX', S, "BUY_LIMIT", is_positive_extreme=False)
+        if strike_gex is None or abs(val_gex) < self.GEX_THRESHOLD: return False, "", None, None
+        return True, f"Target at {strike_gex:.2f}", strike_gex, "BUY_LIMIT"
+
+    def _find_extreme_greeks_strike(self, df, greek_type, price_S, order_kind, is_positive_extreme=True):
+        above_price = order_kind in ["SELL_LIMIT", "BUY_STOP"]
         if above_price:
             filtered_df = df[df['strike'] > price_S]
         else:
             filtered_df = df[df['strike'] < price_S]
-        if filtered_df.empty:
-            return None, None
+        if filtered_df.empty: return None, None
+        
         idx = filtered_df[greek_type].idxmax() if is_positive_extreme else filtered_df[greek_type].idxmin()
         strike = filtered_df.loc[idx, 'strike']
         value = filtered_df.loc[idx, greek_type]
+
         if isinstance(strike, pd.Series):
             return strike.iloc[0], value.iloc[0]
-        return strike, value
-
-    def _evaluate_bearish_breakout(self, calls, puts, S):
-        total_gex = calls['GEX'].sum() + puts['GEX'].sum()
-        if total_gex >= 0:
-            return False, "GEX Total não é negativo.", None
-
-        all_gex = pd.concat([calls[['strike', 'GEX']], puts[['strike', 'GEX']]])
-        strike_max_neg_gex, val_max_neg_gex = self._find_extreme_greeks_strike(all_gex, 'GEX', S, above_price=False, is_positive_extreme=False)
         
-        if strike_max_neg_gex is None or val_max_neg_gex > -100: # Threshold
-            return False, "Não há gamma negativo significativo abaixo do preço.", None
+        return (strike, value)
 
-        total_dex = calls['DEX'].sum() + puts['DEX'].sum()
-        if total_dex >= 0:
-            return False, "DEX Total não é negativo.", None
-
-        total_charm = calls['Charm'].sum() + puts['Charm'].sum()
-        if total_charm >= 0:
-            return False, "Charm Total não é negativo.", None
-
-        details = f"Alvo Bearish identificado no strike {strike_max_neg_gex:.2f} (Pico de Gamma Negativo)"
-        return True, details, strike_max_neg_gex
-
-    def _evaluate_pullback_top(self, calls, puts, S):
-        return False, "Lógica de Pullback Top não implementada para alvo.", None
-
-    def _evaluate_pullback_bottom(self, calls, puts, S):
-        return False, "Lógica de Pullback Fundo não implementada para alvo.", None
-
-    def _evaluate_consolidated_market(self, calls, puts, S):
-        return False, "Mercado consolidado não define alvo de rompimento.", None
-
-    def _evaluate_gamma_negative_protection(self, calls, puts, S):
-        return False, "Setup de proteção não define alvo.", None
-
-    def _get_processed_options_data(self, ticker_for_options_analysis, expiry_date_str):
-        if not expiry_date_str:
-            return None, None, None, None
+    # --- Data Processing and Helper Methods ---
+    def _get_processed_options_data(self, ticker, expiry_date_str):
+        if not expiry_date_str: return None, None, None, None
         try:
-            S = yf.Ticker(ticker_for_options_analysis).history(period="1d")['Close'].iloc[-1]
-            if S == 0:
-                print(f"Could not retrieve current price for {ticker_for_options_analysis}.")
-                return None, None, None, None
-            stock = yf.Ticker(ticker_for_options_analysis)
+            stock = yf.Ticker(ticker)
+            S = stock.history(period="1d")['Close'].iloc[-1]
+            if S == 0: return None, None, None, None
             chain = stock.option_chain(expiry_date_str)
             calls, puts = chain.calls, chain.puts
-            if calls.empty or puts.empty:
-                return None, None, None, None
-            risk_free_rate = 0.02
-            selected_expiry = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
-            today = datetime.today().date()
-            t_days = (selected_expiry - today).days
-            t = t_days / 365.0 if t_days >= 0 else 0.0001
-            processed_calls, processed_puts = compute_and_process_greeks(calls, puts, S, expiry_date_str, risk_free_rate)
-            return processed_calls, processed_puts, S, t
+            if calls.empty or puts.empty: return None, None, None, None
+            t = (datetime.strptime(expiry_date_str, "%Y-%m-%d").date() - datetime.today().date()).days / 365.0
+            processed_calls, processed_puts = compute_and_process_greeks(calls, puts, S, expiry_date_str, 0.02)
+            return processed_calls, processed_puts, S, max(t, 0.0001)
         except Exception as e:
-            print(f"Error in _get_processed_options_data: {e}")
+            print(f"[{self.name}] Error in _get_processed_options_data: {e}")
             return None, None, None, None
 
-    def make_decision(self, ticker, expiry_date_str):
-        calls, puts, S, t = self._get_processed_options_data(ticker, expiry_date_str)
-        default_response = {"decision": "HOLD", "setups": {}, "target_price": None}
-        if calls is None or puts is None:
-            print("Não foi possível obter dados de opções para tomar uma decisão.")
-            return default_response
+    def _convert_price_if_needed(self, target_price, from_greeks):
+        if not from_greeks: return target_price
+        with mt5_lock:
+            current_price_us100 = mt5.symbol_info_tick(self.symbol).ask
+        try:
+            current_price_qqq = yf.Ticker(self.options_symbol).history(period="1d")['Close'].iloc[-1]
+            if current_price_qqq == 0: return None
+            price_ratio = current_price_us100 / current_price_qqq
+            return target_price * price_ratio
+        except Exception: return None
 
-        setups = {
-            'bullish_breakout': self._evaluate_bullish_breakout(calls, puts, S),
-            'bearish_breakout': self._evaluate_bearish_breakout(calls, puts, S),
-            'pullback_top': self._evaluate_pullback_top(calls, puts, S),
-            'pullback_bottom': self._evaluate_pullback_bottom(calls, puts, S),
-            'consolidated_market': self._evaluate_consolidated_market(calls, puts, S),
-            'gamma_negative_protection': self._evaluate_gamma_negative_protection(calls, puts, S),
+    def _get_order_type(self, order_kind):
+        return {"BUY_LIMIT": mt5.ORDER_TYPE_BUY_LIMIT, "SELL_LIMIT": mt5.ORDER_TYPE_SELL_LIMIT, 
+                "BUY_STOP": mt5.ORDER_TYPE_BUY_STOP, "SELL_STOP": mt5.ORDER_TYPE_SELL_STOP}.get(order_kind)
+
+    def _calculate_sl_tp(self, order_kind, price):
+        sl_pct = getattr(self, f"{order_kind.lower()}_sl_percent")
+        tp_pct = getattr(self, f"{order_kind.lower()}_tp_percent")
+        sl_price = price * (1 - sl_pct) if "BUY" in order_kind else price * (1 + sl_pct)
+        tp_price = price * (1 + tp_pct) if "BUY" in order_kind else price * (1 - tp_pct)
+        return sl_price, tp_price
+
+    def _validate_order_price(self, order_type, price):
+        with mt5_lock:
+            tick = mt5.symbol_info_tick(self.symbol)
+        if not tick: return False
+        if order_type == mt5.ORDER_TYPE_BUY_LIMIT and price >= tick.bid: return False
+        if order_type == mt5.ORDER_TYPE_SELL_LIMIT and price <= tick.ask: return False
+        if order_type == mt5.ORDER_TYPE_BUY_STOP and price <= tick.ask: return False
+        if order_type == mt5.ORDER_TYPE_SELL_STOP and price >= tick.bid: return False
+        return True
+
+    def _build_order_request(self, action, volume, order_type, price, sl, tp):
+        with mt5_lock:
+            digits = mt5.symbol_info(self.symbol).digits
+        return {
+            "action": mt5.TRADE_ACTION_PENDING, "symbol": self.symbol, "volume": volume, "type": order_type,
+            "price": round(price, digits), "sl": round(sl, digits), "tp": round(tp, digits), "magic": self.magic_number,
+            "comment": f"{self.name} {action}", "type_time": mt5.ORDER_TIME_GTC,
         }
 
-        setups_status = {k: {"active": v[0], "details": v[1]} for k, v in setups.items()}
-        target_price = None
-        decision = "HOLD"
+    def _handle_order_result(self, result, action, volume, price, kind):
+        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+            print(f"[{self.name}] Order send failed. Code: {result.retcode if result else 'None'}")
+        else:
+            print(f"[{self.name}] Order sent: {action} {volume} {self.symbol} @ {price:.2f} ({kind})")
 
-        if setups['bullish_breakout'][0]:
-            decision = "BUY"
-            target_price = setups['bullish_breakout'][2]
-        elif setups['bearish_breakout'][0]:
-            decision = "SELL"
-            target_price = setups['bearish_breakout'][2]
-        
-        return {"decision": decision, "setups": setups_status, "target_price": target_price}
+    def shutdown(self):
+        print(f"[{self.name}] Shutting down Agent System.")
+        with mt5_lock:
+            if self.is_connected:
+                mt5.shutdown()
 
+    # --- Public Data Accessors ---
+    def get_account_balance(self): return self.account_info.balance if self.account_info else 0
+    def get_account_equity(self): return self.account_info.equity if self.account_info else 0
+    def get_free_margin(self): return self.account_info.margin_free if self.account_info else 0
+    def get_total_profit_loss(self): return self.total_pnl
+    def get_active_positions_count(self): return self.active_positions_count
+    def is_mt5_connected(self): return self.is_connected
+    def get_nearest_expiry(self): return self.nearest_expiry
     def is_trading_hours(self):
         ny_timezone = pytz.timezone('America/New_York')
         current_time_ny = datetime.now(ny_timezone)
@@ -418,45 +450,3 @@ class AgentSystem(threading.Thread):
         market_open = datetime_time(9, 0, 0)
         market_close = datetime_time(16, 0, 0)
         return market_open <= current_time_ny.time() < market_close
-
-    def get_nearest_expiry(self):
-        return self.nearest_expiry
-
-    def get_account_balance(self):
-        account_info = mt5.account_info()
-        return account_info.balance if account_info else 0.0
-
-    def get_total_profit_loss(self):
-        total_pnl = 0.0
-        positions = mt5.positions_get()
-        if positions:
-            for position in positions:
-                total_pnl += position.profit
-        return total_pnl
-
-    def get_active_positions(self):
-        positions = mt5.positions_get()
-        active_positions_data = []
-        if positions:
-            for pos in positions:
-                active_positions_data.append({
-                    "Symbol": pos.symbol,
-                    "Type": "BUY" if pos.type == 0 else "SELL",
-                    "Quantity": pos.volume,
-                    "Average Price": pos.price_open,
-                    "P&L": pos.profit
-                })
-        return active_positions_data
-
-    def get_active_positions_count(self):
-        return mt5.positions_total()
-
-    def get_win_rate(self):
-        return 75.0
-
-    def shutdown(self):
-        print("Shutting down Agent System.")
-        mt5.shutdown()
-
-    def is_mt5_connected(self):
-        return mt5.terminal_info() is not None
