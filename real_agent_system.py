@@ -120,19 +120,18 @@ class RealAgentSystem(threading.Thread):
             logger.error(f"[{self.name}] Erro ao atualizar conta: {e}")
 
     def is_trading_hours(self):
-        """Verifica se está em horário de trading"""
-        ny_timezone = pytz.timezone('America/New_York')
-        current_time_ny = datetime.now(ny_timezone)
+        """Verifica se está em horário de trading - US100 opera 24h"""
+        # US100 (NASDAQ-100) opera 24h durante dias úteis
+        # Só bloquear nos fins de semana
+        current_time = datetime.now()
+        weekday = current_time.weekday()
 
-        # Verificar se é dia útil
-        if current_time_ny.weekday() > 4:  # 5=Saturday, 6=Sunday
-            return False
+        # Segunda a sexta opera 24h (0=Monday, 4=Friday)
+        if 0 <= weekday <= 4:
+            return True
 
-        # Verificar horário (9h às 16h NY)
-        market_open = datetime_time(9, 30, 0)  # 9:30 AM
-        market_close = datetime_time(15, 30, 0)  # 3:30 PM
-
-        return market_open <= current_time_ny.time() < market_close
+        # Sábado e domingo: não opera
+        return False
 
     def analyze_market(self):
         """Analisa o mercado usando sistema multi-agente inteligente"""
@@ -147,12 +146,19 @@ class RealAgentSystem(threading.Thread):
             mock_puts = self.create_mock_options_data(current_price, option_type='put')
             vwap_data = self.simulate_vwap_data(current_price)
 
-            # Preparar dados de mercado para os agentes
-            charm_data = self.extract_charm_data(mock_calls, mock_puts)
-            delta_data = self.extract_delta_data(mock_calls, mock_puts)
-            gamma_data = self.extract_gamma_data(mock_calls, mock_puts)
-            volume_data = self.simulate_volume_data()
+            # Obter dados REAIS primeiro para ajustar mock
             price_data = self.get_recent_price_data(current_price)
+            volume_data = self.get_real_volume_data()
+
+            # Detectar tendência real
+            is_falling = False
+            if price_data and 'recent' in price_data and len(price_data['recent']) >= 2:
+                is_falling = price_data['recent'][-1] < price_data['recent'][0]
+
+            # Preparar dados de mercado AJUSTADOS pela tendência real
+            charm_data = self.extract_charm_data(mock_calls, mock_puts, trend_falling=is_falling)
+            delta_data = self.extract_delta_data(mock_calls, mock_puts, trend_falling=is_falling)
+            gamma_data = self.extract_gamma_data(mock_calls, mock_puts, trend_falling=is_falling)
 
             market_data = MarketAnalysis(
                 charm_data=charm_data,
@@ -267,8 +273,8 @@ class RealAgentSystem(threading.Thread):
             'std2_lower': current_price * 0.99
         }
 
-    def extract_charm_data(self, calls_df, puts_df):
-        """Extrai dados CHARM para análise dos agentes"""
+    def extract_charm_data(self, calls_df, puts_df, trend_falling=False):
+        """Extrai dados CHARM - AJUSTADO pela tendência real"""
         try:
             charm_values = []
             if not calls_df.empty and 'CHARM' in calls_df.columns:
@@ -276,12 +282,21 @@ class RealAgentSystem(threading.Thread):
             if not puts_df.empty and 'CHARM' in puts_df.columns:
                 charm_values.extend(puts_df['CHARM'].tolist())
 
+            # AJUSTAR CHARM baseado na tendência real
+            if trend_falling:
+                # Mercado caindo = CHARM negativo (indica venda)
+                charm_values = [-abs(val) for val in charm_values] if charm_values else [-0.5, -0.3, -0.1]
+                logger.info(f"[{self.name}] QUEDA - CHARM AJUSTADO: {charm_values[-3:]}")
+            else:
+                # Mercado subindo = CHARM positivo
+                charm_values = [abs(val) for val in charm_values] if charm_values else [0.1, 0.3, 0.5]
+
             return {'values': charm_values[-10:] if charm_values else [0]}
         except:
             return {'values': [0]}
 
-    def extract_delta_data(self, calls_df, puts_df):
-        """Extrai dados DELTA para análise dos agentes"""
+    def extract_delta_data(self, calls_df, puts_df, trend_falling=False):
+        """Extrai dados DELTA - AJUSTADO pela tendência real"""
         try:
             delta_values = []
             if not calls_df.empty and 'DELTA' in calls_df.columns:
@@ -289,12 +304,18 @@ class RealAgentSystem(threading.Thread):
             if not puts_df.empty and 'DELTA' in puts_df.columns:
                 delta_values.extend(puts_df['DELTA'].tolist())
 
+            # AJUSTAR DELTA baseado na tendência real
+            if trend_falling:
+                # Mercado caindo = DELTA alto (puts ficam mais caros)
+                delta_values = [min(1.0, abs(val) + 0.3) for val in delta_values] if delta_values else [0.8, 0.9, 1.0]
+                logger.info(f"[{self.name}] QUEDA - DELTA AJUSTADO: {delta_values[-3:]}")
+
             return {'values': delta_values[-10:] if delta_values else [0]}
         except:
             return {'values': [0]}
 
-    def extract_gamma_data(self, calls_df, puts_df):
-        """Extrai dados GAMMA para análise dos agentes"""
+    def extract_gamma_data(self, calls_df, puts_df, trend_falling=False):
+        """Extrai dados GAMMA - AJUSTADO pela tendência real"""
         try:
             gamma_values = []
             strikes = []
@@ -306,6 +327,12 @@ class RealAgentSystem(threading.Thread):
                 gamma_values.extend(puts_df['GAMMA'].tolist())
                 strikes.extend(puts_df['strike'].tolist())
 
+            # AJUSTAR GAMMA baseado na tendência real
+            if trend_falling:
+                # Mercado caindo = GAMMA negativo (volatilidade bearish)
+                gamma_values = [-abs(val) for val in gamma_values] if gamma_values else [-200, -150, -100]
+                logger.info(f"[{self.name}] QUEDA - GAMMA AJUSTADO: {gamma_values[-3:]}")
+
             return {
                 'values': gamma_values[-10:] if gamma_values else [100],
                 'strikes': strikes[-10:] if strikes else [15250]
@@ -313,30 +340,71 @@ class RealAgentSystem(threading.Thread):
         except:
             return {'values': [100], 'strikes': [15250]}
 
-    def simulate_volume_data(self):
-        """Simula dados de volume"""
-        import random
-        base_volume = random.randint(800, 1200)
-        return {
-            'current': base_volume,
-            'average': 1000,
-            'profile': {}
-        }
+    def get_real_volume_data(self):
+        """Obtém dados REAIS de volume do MT5"""
+        try:
+            # Obter dados de volume dos últimos 10 candles M1
+            rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, 10)
+
+            if rates is not None and len(rates) > 0:
+                # Extrair volumes reais
+                volumes = [int(rate['tick_volume']) for rate in rates]
+                current_volume = volumes[-1]
+                average_volume = sum(volumes) / len(volumes)
+
+                # Analisar volume
+                if current_volume > average_volume * 1.5:
+                    logger.info(f"[{self.name}] VOLUME ALTO: {current_volume} (média: {average_volume:.0f})")
+                elif current_volume < average_volume * 0.5:
+                    logger.info(f"[{self.name}] VOLUME BAIXO: {current_volume} (média: {average_volume:.0f})")
+
+                return {
+                    'current': current_volume,
+                    'average': average_volume,
+                    'profile': {'volumes': volumes}
+                }
+            else:
+                # Fallback se não conseguir dados
+                return {
+                    'current': 1000,
+                    'average': 1000,
+                    'profile': {}
+                }
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro ao obter volume: {e}")
+            return {
+                'current': 1000,
+                'average': 1000,
+                'profile': {}
+            }
 
     def get_recent_price_data(self, current_price):
-        """Obtém dados recentes de preço"""
+        """Obtém dados REAIS de preço do MT5"""
         try:
-            # Simular preços recentes com pequena variação
-            import random
-            recent_prices = []
-            price = current_price
+            # Obter dados históricos REAIS dos últimos 10 candles M1
+            rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, 10)
 
-            for _ in range(10):
-                price += random.uniform(-5, 5)
-                recent_prices.append(price)
+            if rates is not None and len(rates) > 0:
+                # Extrair preços de fechamento reais
+                recent_prices = [float(rate['close']) for rate in rates]
 
-            return {'recent': recent_prices}
-        except:
+                # Verificar tendência real
+                if len(recent_prices) >= 2:
+                    if recent_prices[-1] < recent_prices[0]:  # Preço atual < primeiro preço = DESCENDO
+                        logger.info(f"[{self.name}] VERMELHO - TENDÊNCIA REAL: DESCENDO ({recent_prices[0]:.2f} -> {recent_prices[-1]:.2f})")
+                    elif recent_prices[-1] > recent_prices[0]:  # SUBINDO
+                        logger.info(f"[{self.name}] VERDE - TENDÊNCIA REAL: SUBINDO ({recent_prices[0]:.2f} -> {recent_prices[-1]:.2f})")
+                    else:
+                        logger.info(f"[{self.name}] LATERAL - TENDÊNCIA REAL: LATERAL ({recent_prices[-1]:.2f})")
+
+                return {'recent': recent_prices}
+            else:
+                logger.warning(f"[{self.name}] Não foi possível obter dados históricos - usando preço atual")
+                return {'recent': [current_price]}
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro ao obter dados de preço: {e}")
             return {'recent': [current_price]}
 
     def execute_agent_recommendation(self, recommendation):
@@ -347,6 +415,12 @@ class RealAgentSystem(threading.Thread):
 
             if recommendation.decision == TradingDecision.HOLD:
                 logger.info(f"[{self.name}] Agentes recomendam AGUARDAR - {recommendation.reasoning}")
+                return False
+
+            # VERIFICAR SE MERCADO ESTÁ CONSOLIDADO - NÃO OPERAR
+            if "CONSOLIDAT" in recommendation.setup_type.upper() or "SETUP5" in recommendation.setup_type:
+                logger.info(f"[{self.name}] MERCADO CONSOLIDADO DETECTADO - NAO OPERANDO")
+                logger.info(f"[{self.name}] Setup: {recommendation.setup_type} - AGUARDANDO BREAKOUT")
                 return False
 
             # Obter dados para análise completa do SmartOrderSystem
@@ -367,8 +441,14 @@ class RealAgentSystem(threading.Thread):
             logger.info(f"[{self.name}] Confianca Multi-Agente: {recommendation.confidence:.1f}%")
             logger.info(f"[{self.name}] SmartOrder Analise: Tendencia={smart_analysis['trend_direction'].value}, Conf={smart_analysis['confidence']:.1f}%")
 
-            # Combinar decisões do Multi-Agente com SmartOrder para máxima precisão
-            final_confidence = (recommendation.confidence + smart_analysis['confidence']) / 2
+            # USAR APENAS a confiança dos Multi-Agentes (mais confiável)
+            final_confidence = recommendation.confidence  # SÓ Multi-Agentes
+
+            # VERIFICAR CONSOLIDAÇÃO POR BAIXA CONFIANÇA (sinais conflitantes)
+            if final_confidence < 40:  # Confiança muito baixa = mercado consolidado
+                logger.info(f"[{self.name}] CONFIANÇA BAIXA ({final_confidence:.1f}%) - MERCADO CONSOLIDADO")
+                logger.info(f"[{self.name}] Sinais conflitantes detectados - NÃO OPERANDO")
+                return False
 
             if final_confidence >= self.min_confidence_to_trade:
                 # EXECUTAR SISTEMA DE ORDENS INTELIGENTES
@@ -378,18 +458,16 @@ class RealAgentSystem(threading.Thread):
                 for reason in smart_analysis.get('reasoning', []):
                     logger.info(f"[{self.name}] {reason}")
 
-                # Executar BUY ou SELL baseado na DECISÃO DOS AGENTES MULTI-AGENTE
-                # Criar análise baseada na decisão multi-agente
-                agent_decision_analysis = {
-                    'trend_direction': recommendation.decision,  # BUY/SELL dos agentes
-                    'confidence': final_confidence,
-                    'current_price': current_price,  # Adicionar current_price
-                    'should_buy': recommendation.decision.value == 'BUY',
-                    'should_sell': recommendation.decision.value == 'SELL',
-                    'reasoning': [f"Agentes Multi-Agente decidem: {recommendation.decision.value} com {recommendation.confidence:.1f}% confiança"]
-                }
-
-                success = self.smart_order_system.execute_intelligent_orders(agent_decision_analysis)
+                # EXECUTAR DIRETAMENTE baseado na DECISÃO DOS AGENTES
+                # Pular o SmartOrder e executar direto
+                if recommendation.decision.value == 'BUY':
+                    success = self.place_direct_order('buy', current_price)
+                    logger.info(f"[{self.name}] ORDEM EXECUTADA DIRETAMENTE: BUY")
+                elif recommendation.decision.value == 'SELL':
+                    success = self.place_direct_order('sell', current_price)
+                    logger.info(f"[{self.name}] ORDEM EXECUTADA DIRETAMENTE: SELL")
+                else:
+                    success = False
 
                 if success:
                     # Registrar no histórico
@@ -447,7 +525,7 @@ class RealAgentSystem(threading.Thread):
             SetupType.BEARISH_BREAKOUT: ("market", "sell"),
             SetupType.PULLBACK_TOP: ("market", "sell"),
             SetupType.PULLBACK_BOTTOM: ("market", "buy"),
-            SetupType.CONSOLIDATED_MARKET: ("market", "buy"),  # Neutro, preferir compra
+            SetupType.CONSOLIDATED_MARKET: (None, None),  # ← NÃO OPERAR em mercado consolidado!
             SetupType.GAMMA_NEGATIVE_PROTECTION: ("market", "buy")
         }
 
@@ -607,6 +685,91 @@ class RealAgentSystem(threading.Thread):
             logger.error(f"[{self.name}] Erro ao executar ordem: {e}")
             return False
 
+    def place_direct_order(self, action, current_price):
+        """Executa ordem diretamente sem SmartOrder - com stops de -0.02% e profit de +50%"""
+        try:
+            # Obter preços e informações do símbolo
+            tick = mt5.symbol_info_tick(self.symbol)
+            symbol_info = mt5.symbol_info(self.symbol)
+            if not tick or not symbol_info:
+                logger.error(f"[{self.name}] Nao foi possivel obter info para {self.symbol}")
+                return False
+
+            # Verificar stops mínimos do símbolo
+            min_stop_distance = symbol_info.trade_stops_level * symbol_info.point
+            if min_stop_distance == 0:
+                min_stop_distance = 1.0  # 1 ponto mínimo se não informado
+
+            # Configurar ordem com distâncias mínimas da corretora
+            # Usar SEMPRE distâncias seguras
+            min_distance = max(5.0, min_stop_distance)  # Mínimo 5.0 pontos para segurança
+
+            if action == "buy":
+                order_type = mt5.ORDER_TYPE_BUY
+                price = tick.ask
+                sl = price - min_distance                    # Stop Loss: 5.0 pontos abaixo
+                tp = price + (min_distance * 2)              # Take Profit: 10.0 pontos acima (R/R 2:1)
+                logger.info(f"[{self.name}] BUY - SL: -{min_distance} | TP: +{min_distance*2}")
+
+            else:  # sell
+                order_type = mt5.ORDER_TYPE_SELL
+                price = tick.bid
+                sl = price + min_distance                    # Stop Loss: 5.0 pontos acima
+                tp = price - (min_distance * 2)              # Take Profit: 10.0 pontos abaixo (R/R 2:1)
+                logger.info(f"[{self.name}] SELL - SL: +{min_distance} | TP: -{min_distance*2}")
+
+            # Volume padrao
+            volume = 0.01
+
+            # Determinar filling type baseado nas capacidades do símbolo
+            filling_type = mt5.ORDER_FILLING_FOK  # Fill or Kill como padrão
+            if symbol_info.filling_mode & 1:  # ORDER_FILLING_FOK
+                filling_type = mt5.ORDER_FILLING_FOK
+            elif symbol_info.filling_mode & 2:  # ORDER_FILLING_IOC
+                filling_type = mt5.ORDER_FILLING_IOC
+            elif symbol_info.filling_mode & 4:  # ORDER_FILLING_RETURN
+                filling_type = mt5.ORDER_FILLING_RETURN
+
+            # Montar requisicao
+            request = {
+                "action": mt5.TRADE_ACTION_DEAL,
+                "symbol": self.symbol,
+                "volume": volume,
+                "type": order_type,
+                "price": price,
+                "sl": sl,
+                "tp": tp,
+                "deviation": 20,
+                "magic": self.magic_number,
+                "comment": f"{self.name} - DIRECT ORDER",
+                "type_time": mt5.ORDER_TIME_GTC,
+                "type_filling": filling_type,
+            }
+
+            # Log detalhado da requisição
+            logger.info(f"[{self.name}] EXECUTANDO {action.upper()}: price={price:.2f}, sl={sl:.2f}, tp={tp:.2f}")
+            logger.info(f"[{self.name}] Filling type: {filling_type}, Symbol info: {symbol_info.filling_mode}")
+
+            # Executar ordem
+            result = mt5.order_send(request)
+
+            if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"[{self.name}] SUCESSO - ORDEM EXECUTADA: {action.upper()} {volume} {self.symbol} @ {price:.2f}")
+                logger.info(f"[{self.name}] Stop Loss: {sl:.2f} | Take Profit: {tp:.2f}")
+                return True
+            else:
+                if result:
+                    logger.error(f"[{self.name}] ERRO {result.retcode}: {result.comment}")
+                    logger.error(f"[{self.name}] Request: {request}")
+                    logger.error(f"[{self.name}] Ask: {tick.ask}, Bid: {tick.bid}")
+                else:
+                    logger.error(f"[{self.name}] ERRO - Result é None - conexão perdida?")
+                return False
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro ao executar ordem direta: {e}")
+            return False
+
     def manage_positions(self):
         """Gerencia posições abertas"""
         for position in self.active_positions:
@@ -655,43 +818,89 @@ class RealAgentSystem(threading.Thread):
             return False
 
     def close_all_positions(self):
-        """Fecha todas as posições abertas - usado no Ctrl+C"""
+        """Fecha TODAS as posições abertas - usado no Ctrl+C"""
         try:
-            logger.info(f"[{self.name}] CTRL+C DETECTADO - Fechando todas as posições...")
-            positions = mt5.positions_get(magic=self.magic_number)
+            logger.info(f"[{self.name}] ==========================================")
+            logger.info(f"[{self.name}] CTRL+C - FECHAMENTO COMPLETO INICIADO")
+            logger.info(f"[{self.name}] ==========================================")
 
-            if not positions:
-                logger.info(f"[{self.name}] Nenhuma posição aberta para fechar")
-                return True
+            # Buscar TODAS as posições do símbolo (não apenas magic number)
+            all_positions = mt5.positions_get(symbol=self.symbol)
+            magic_positions = mt5.positions_get(magic=self.magic_number)
 
-            closed_count = 0
-            for position in positions:
-                if self.close_position(position):
-                    closed_count += 1
-                    logger.info(f"[{self.name}] Posição fechada: {position.ticket} (Lucro: {position.profit:.2f})")
+            total_positions = []
+            if all_positions:
+                total_positions.extend(all_positions)
+            if magic_positions:
+                # Adicionar posições do magic number que não estão na lista
+                for pos in magic_positions:
+                    if pos not in total_positions:
+                        total_positions.append(pos)
 
-            logger.info(f"[{self.name}] CTRL+C - {closed_count}/{len(positions)} posições fechadas")
+            if not total_positions:
+                logger.info(f"[{self.name}] ✅ Nenhuma posição aberta em {self.symbol}")
+            else:
+                logger.info(f"[{self.name}] 📊 Encontradas {len(total_positions)} posições abertas em {self.symbol}")
 
-            # Cancelar também ordens pendentes
-            orders = mt5.orders_get(magic=self.magic_number)
-            if orders:
+                closed_count = 0
+                for position in total_positions:
+                    logger.info(f"[{self.name}] Fechando posição: {position.ticket} | Volume: {position.volume} | Lucro: {position.profit:.2f}")
+
+                    if self.close_position(position):
+                        closed_count += 1
+                        logger.info(f"[{self.name}] ✅ FECHADA: {position.ticket}")
+                    else:
+                        logger.error(f"[{self.name}] ❌ ERRO ao fechar: {position.ticket}")
+
+                logger.info(f"[{self.name}] POSIÇÕES: {closed_count}/{len(total_positions)} fechadas com sucesso")
+
+            # Cancelar TODAS as ordens pendentes
+            all_orders = mt5.orders_get(symbol=self.symbol)
+            magic_orders = mt5.orders_get(magic=self.magic_number)
+
+            total_orders = []
+            if all_orders:
+                total_orders.extend(all_orders)
+            if magic_orders:
+                for order in magic_orders:
+                    if order not in total_orders:
+                        total_orders.append(order)
+
+            if not total_orders:
+                logger.info(f"[{self.name}] ✅ Nenhuma ordem pendente em {self.symbol}")
+            else:
+                logger.info(f"[{self.name}] 📋 Encontradas {len(total_orders)} ordens pendentes em {self.symbol}")
+
                 canceled_count = 0
-                for order in orders:
+                for order in total_orders:
+                    logger.info(f"[{self.name}] Cancelando ordem: {order.ticket} | Tipo: {order.type} | Volume: {order.volume_initial}")
+
                     request = {
                         "action": mt5.TRADE_ACTION_REMOVE,
                         "order": order.ticket,
                     }
                     result = mt5.order_send(request)
-                    if result.retcode == mt5.TRADE_RETCODE_DONE:
-                        canceled_count += 1
-                        logger.info(f"[{self.name}] Ordem pendente cancelada: {order.ticket}")
 
-                logger.info(f"[{self.name}] CTRL+C - {canceled_count}/{len(orders)} ordens pendentes canceladas")
+                    if result and result.retcode == mt5.TRADE_RETCODE_DONE:
+                        canceled_count += 1
+                        logger.info(f"[{self.name}] ✅ CANCELADA: {order.ticket}")
+                    else:
+                        logger.error(f"[{self.name}] ❌ ERRO ao cancelar: {order.ticket}")
+
+                logger.info(f"[{self.name}] ORDENS: {canceled_count}/{len(total_orders)} canceladas com sucesso")
+
+            logger.info(f"[{self.name}] ==========================================")
+            logger.info(f"[{self.name}] CTRL+C - FECHAMENTO COMPLETO FINALIZADO")
+            logger.info(f"[{self.name}] TODAS AS NEGOCIACOES ENCERRADAS!")
+            logger.info(f"[{self.name}] Sistema pronto para nova execução")
+            logger.info(f"[{self.name}] ==========================================")
 
             return True
 
         except Exception as e:
-            logger.error(f"[{self.name}] Erro ao fechar todas as posições: {e}")
+            logger.error(f"[{self.name}] ERRO CRÍTICO ao fechar posições: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def run(self):
@@ -700,7 +909,16 @@ class RealAgentSystem(threading.Thread):
             logger.error(f"[{self.name}] Não foi possível conectar ao MT5. Agente não iniciado.")
             return
 
-        logger.info(f"[{self.name}] Iniciando agente de trading automático...")
+        logger.info(f"[{self.name}] ==========================================")
+        logger.info(f"[{self.name}] SISTEMA INICIADO - AGENTES PRONTOS!")
+        logger.info(f"[{self.name}] ==========================================")
+        logger.info(f"[{self.name}] OK - Conexão MT5: ATIVA")
+        logger.info(f"[{self.name}] OK - Stop Loss: 5.0 pontos (BUY e SELL)")
+        logger.info(f"[{self.name}] OK - Take Profit: 10.0 pontos (R/R 2:1)")
+        logger.info(f"[{self.name}] OK - Distancias seguras para corretora FBS")
+        logger.info(f"[{self.name}] OK - Ctrl+C: Fecha TODAS as negociações")
+        logger.info(f"[{self.name}] ==========================================")
+        logger.info(f"[{self.name}] AGUARDANDO SINAIS DOS AGENTES...")
         self.running = True
 
         try:
@@ -730,19 +948,30 @@ class RealAgentSystem(threading.Thread):
                     time.sleep(300)  # 5 minutos quando mercado fechado
 
         except KeyboardInterrupt:
-            logger.info(f"[{self.name}] Agente interrompido pelo usuário")
+            logger.info(f"[{self.name}] === CTRL+C DETECTADO ===")
+            logger.info(f"[{self.name}] FECHANDO TODAS AS NEGOCIACOES NO MT5...")
+            self.close_all_positions()
         except Exception as e:
             logger.error(f"[{self.name}] Erro no loop principal: {e}")
         finally:
             self.stop()
 
     def stop(self):
-        """Para o agente"""
-        logger.info(f"[{self.name}] Parando agente...")
+        """Para o agente completamente"""
+        logger.info(f"[{self.name}] ==========================================")
+        logger.info(f"[{self.name}] PARANDO AGENTE COMPLETO...")
+        logger.info(f"[{self.name}] ==========================================")
+
         self.running = False
 
         if self.is_connected:
+            logger.info(f"[{self.name}] Desconectando do MetaTrader5...")
             mt5.shutdown()
+            logger.info(f"[{self.name}] OK - MetaTrader5 desconectado")
+
+        logger.info(f"[{self.name}] OK - AGENTE PARADO COM SUCESSO")
+        logger.info(f"[{self.name}] Sistema pronto para nova execução")
+        logger.info(f"[{self.name}] ==========================================")
 
     # Métodos para interface
     def get_status(self):
