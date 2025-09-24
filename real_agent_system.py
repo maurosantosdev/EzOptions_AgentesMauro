@@ -150,10 +150,16 @@ class RealAgentSystem(threading.Thread):
             price_data = self.get_recent_price_data(current_price)
             volume_data = self.get_real_volume_data()
 
-            # Detectar tendência real
-            is_falling = False
-            if price_data and 'recent' in price_data and len(price_data['recent']) >= 2:
-                is_falling = price_data['recent'][-1] < price_data['recent'][0]
+            # DETECTOR DE TENDÊNCIA FORTE ANTECIPADA
+            is_falling, trend_strength = self.detect_strong_trend(price_data, volume_data)
+
+            # Log da análise preditiva
+            if trend_strength >= 0.8:
+                direction = "QUEDA FORTE" if is_falling else "ALTA FORTE"
+                logger.info(f"[{self.name}] PREDICAO FORTE: {direction} DETECTADA! Força: {trend_strength:.1%}")
+            elif trend_strength >= 0.6:
+                direction = "Queda" if is_falling else "Alta"
+                logger.info(f"[{self.name}] PREDICAO MODERADA: {direction} detectada. Força: {trend_strength:.1%}")
 
             # Preparar dados de mercado AJUSTADOS pela tendência real
             charm_data = self.extract_charm_data(mock_calls, mock_puts, trend_falling=is_falling)
@@ -173,6 +179,17 @@ class RealAgentSystem(threading.Thread):
 
             # Análise colaborativa dos 10 agentes
             recommendation = self.multi_agent_system.analyze_market_collaborative(market_data)
+
+            # BOOST DE CONFIANÇA PARA TENDÊNCIAS FORTES
+            original_confidence = recommendation.confidence
+            if trend_strength >= 0.8:
+                # Tendência muito forte = +25% confiança
+                recommendation.confidence = min(100.0, recommendation.confidence + 25)
+                logger.info(f"[{self.name}] BOOST CONFIANÇA: {original_confidence:.1f}% -> {recommendation.confidence:.1f}% (Tendência Forte)")
+            elif trend_strength >= 0.6:
+                # Tendência moderada = +15% confiança
+                recommendation.confidence = min(100.0, recommendation.confidence + 15)
+                logger.info(f"[{self.name}] BOOST CONFIANÇA: {original_confidence:.1f}% -> {recommendation.confidence:.1f}% (Tendência Moderada)")
 
             # Executar trade baseado na recomendação dos agentes
             if recommendation.confidence >= self.min_confidence_to_trade:
@@ -288,8 +305,9 @@ class RealAgentSystem(threading.Thread):
                 charm_values = [-abs(val) for val in charm_values] if charm_values else [-0.5, -0.3, -0.1]
                 logger.info(f"[{self.name}] QUEDA - CHARM AJUSTADO: {charm_values[-3:]}")
             else:
-                # Mercado subindo = CHARM positivo
-                charm_values = [abs(val) for val in charm_values] if charm_values else [0.1, 0.3, 0.5]
+                # Mercado subindo = CHARM positivo (FORÇA ALTA)
+                charm_values = [abs(val) + 0.5 for val in charm_values] if charm_values else [0.5, 0.8, 1.2]
+                logger.info(f"[{self.name}] ALTA - CHARM AJUSTADO: {charm_values[-3:]}")
 
             return {'values': charm_values[-10:] if charm_values else [0]}
         except:
@@ -309,6 +327,10 @@ class RealAgentSystem(threading.Thread):
                 # Mercado caindo = DELTA alto (puts ficam mais caros)
                 delta_values = [min(1.0, abs(val) + 0.3) for val in delta_values] if delta_values else [0.8, 0.9, 1.0]
                 logger.info(f"[{self.name}] QUEDA - DELTA AJUSTADO: {delta_values[-3:]}")
+            else:
+                # Mercado subindo = DELTA baixo (calls ficam mais caros)
+                delta_values = [max(0.1, abs(val) - 0.3) for val in delta_values] if delta_values else [0.1, 0.2, 0.3]
+                logger.info(f"[{self.name}] ALTA - DELTA AJUSTADO: {delta_values[-3:]}")
 
             return {'values': delta_values[-10:] if delta_values else [0]}
         except:
@@ -332,6 +354,10 @@ class RealAgentSystem(threading.Thread):
                 # Mercado caindo = GAMMA negativo (volatilidade bearish)
                 gamma_values = [-abs(val) for val in gamma_values] if gamma_values else [-200, -150, -100]
                 logger.info(f"[{self.name}] QUEDA - GAMMA AJUSTADO: {gamma_values[-3:]}")
+            else:
+                # Mercado subindo = GAMMA positivo (volatilidade bullish)
+                gamma_values = [abs(val) + 100 for val in gamma_values] if gamma_values else [200, 250, 300]
+                logger.info(f"[{self.name}] ALTA - GAMMA AJUSTADO: {gamma_values[-3:]}")
 
             return {
                 'values': gamma_values[-10:] if gamma_values else [100],
@@ -339,6 +365,76 @@ class RealAgentSystem(threading.Thread):
             }
         except:
             return {'values': [100], 'strikes': [15250]}
+
+    def detect_strong_trend(self, price_data, volume_data):
+        """DETECTOR PREDITIVO - Identifica tendências fortes ANTES do movimento completo"""
+        try:
+            if not price_data or 'recent' not in price_data or len(price_data['recent']) < 5:
+                return False, 0.0
+
+            prices = price_data['recent']
+            volume = volume_data.get('current', 1000)
+            avg_volume = volume_data.get('average', 1000)
+
+            # ANÁLISE DE MOMENTUM
+            momentum_score = 0.0
+
+            # 1. VELOCIDADE DA MUDANÇA (últimos 3 vs anteriores)
+            recent_3 = prices[-3:]
+            older_3 = prices[-6:-3] if len(prices) >= 6 else prices[:-3]
+
+            if len(older_3) >= 2 and len(recent_3) >= 2:
+                recent_change = recent_3[-1] - recent_3[0]
+                older_change = older_3[-1] - older_3[0]
+
+                # Se mudança recente é maior que anterior = aceleração
+                if abs(recent_change) > abs(older_change) * 1.5:
+                    momentum_score += 0.3
+                    logger.info(f"[{self.name}] ACELERACAO DETECTADA: {recent_change:.1f} vs {older_change:.1f}")
+
+            # 2. CONSISTÊNCIA DA DIREÇÃO (mesmo sentido nos últimos movimentos)
+            direction_consistency = 0
+            for i in range(1, min(len(prices), 5)):
+                if i < len(prices):
+                    current_move = prices[-1] - prices[-i-1]
+                    if current_move < 0:  # Caindo
+                        direction_consistency -= 1
+                    elif current_move > 0:  # Subindo
+                        direction_consistency += 1
+
+            consistency_score = abs(direction_consistency) / 4.0
+            momentum_score += consistency_score * 0.3
+
+            # 3. VOLUME CONFIRMAÇÃO (volume alto = movimento forte)
+            volume_score = 0
+            if volume > avg_volume * 1.8:  # Volume muito alto
+                volume_score = 0.2
+                logger.info(f"[{self.name}] VOLUME MUITO ALTO: {volume} vs {avg_volume:.0f}")
+            elif volume > avg_volume * 1.3:  # Volume alto
+                volume_score = 0.1
+
+            momentum_score += volume_score
+
+            # 4. MAGNITUDE DO MOVIMENTO
+            total_change = abs(prices[-1] - prices[0])
+            avg_change = sum(abs(prices[i] - prices[i-1]) for i in range(1, len(prices))) / (len(prices) - 1)
+
+            if total_change > avg_change * 2:  # Movimento maior que média
+                momentum_score += 0.2
+
+            # DETERMINAR DIREÇÃO
+            is_falling = direction_consistency < 0
+
+            # LIMITAR SCORE A 1.0
+            momentum_score = min(1.0, momentum_score)
+
+            logger.info(f"[{self.name}] ANÁLISE PREDITIVA - Direção: {'QUEDA' if is_falling else 'ALTA'}, Força: {momentum_score:.1%}")
+
+            return is_falling, momentum_score
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro na detecção de tendência: {e}")
+            return False, 0.0
 
     def get_real_volume_data(self):
         """Obtém dados REAIS de volume do MT5"""
@@ -458,14 +554,33 @@ class RealAgentSystem(threading.Thread):
                 for reason in smart_analysis.get('reasoning', []):
                     logger.info(f"[{self.name}] {reason}")
 
-                # EXECUTAR DIRETAMENTE baseado na DECISÃO DOS AGENTES
-                # Pular o SmartOrder e executar direto
-                if recommendation.decision.value == 'BUY':
-                    success = self.place_direct_order('buy', current_price)
-                    logger.info(f"[{self.name}] ORDEM EXECUTADA DIRETAMENTE: BUY")
+                # SISTEMA PREDITIVO ANTECIPADO - MÚLTIPLAS POSIÇÕES
+                if recommendation.decision.value == 'BUY' and final_confidence >= 75:
+                    # PREVISÃO FORTE DE ALTA - ABRIR 5 BUY
+                    logger.info(f"[{self.name}] PREVISAO FORTE DE ALTA - ABRINDO 5 BUY POSITIONS!")
+                    success = self.open_multiple_positions('buy', 5, current_price, "FORTE ALTA PREVISTA")
+                elif recommendation.decision.value == 'SELL' and final_confidence >= 75:
+                    # PREVISÃO FORTE DE BAIXA - ABRIR 5 SELL
+                    logger.info(f"[{self.name}] PREVISAO FORTE DE BAIXA - ABRINDO 5 SELL POSITIONS!")
+                    success = self.open_multiple_positions('sell', 5, current_price, "FORTE BAIXA PREVISTA")
+                elif recommendation.decision.value == 'BUY':
+                    # VERIFICAR LIMITE ANTES DE ABRIR POSIÇÃO SIMPLES
+                    current_positions = self.count_open_positions()
+                    if current_positions >= 10:
+                        logger.info(f"[{self.name}] LIMITE ATINGIDO: {current_positions}/10 posições - NÃO ABRINDO BUY")
+                        success = False
+                    else:
+                        success = self.place_direct_order('buy', current_price)
+                        logger.info(f"[{self.name}] ORDEM SIMPLES EXECUTADA: BUY")
                 elif recommendation.decision.value == 'SELL':
-                    success = self.place_direct_order('sell', current_price)
-                    logger.info(f"[{self.name}] ORDEM EXECUTADA DIRETAMENTE: SELL")
+                    # VERIFICAR LIMITE ANTES DE ABRIR POSIÇÃO SIMPLES
+                    current_positions = self.count_open_positions()
+                    if current_positions >= 10:
+                        logger.info(f"[{self.name}] LIMITE ATINGIDO: {current_positions}/10 posições - NÃO ABRINDO SELL")
+                        success = False
+                    else:
+                        success = self.place_direct_order('sell', current_price)
+                        logger.info(f"[{self.name}] ORDEM SIMPLES EXECUTADA: SELL")
                 else:
                     success = False
 
@@ -707,16 +822,16 @@ class RealAgentSystem(threading.Thread):
             if action == "buy":
                 order_type = mt5.ORDER_TYPE_BUY
                 price = tick.ask
-                sl = price - min_distance                    # Stop Loss: 5.0 pontos abaixo
-                tp = price + (min_distance * 2)              # Take Profit: 10.0 pontos acima (R/R 2:1)
-                logger.info(f"[{self.name}] BUY - SL: -{min_distance} | TP: +{min_distance*2}")
+                sl = price - min_distance                    # Stop Loss obrigatório para MT5
+                tp = price + (min_distance * 2)              # Take Profit obrigatório para MT5
+                logger.info(f"[{self.name}] BUY - SL: -{min_distance} | TP: +{min_distance*2} (+ Controle Global)")
 
             else:  # sell
                 order_type = mt5.ORDER_TYPE_SELL
                 price = tick.bid
-                sl = price + min_distance                    # Stop Loss: 5.0 pontos acima
-                tp = price - (min_distance * 2)              # Take Profit: 10.0 pontos abaixo (R/R 2:1)
-                logger.info(f"[{self.name}] SELL - SL: +{min_distance} | TP: -{min_distance*2}")
+                sl = price + min_distance                    # Stop Loss obrigatório para MT5
+                tp = price - (min_distance * 2)              # Take Profit obrigatório para MT5
+                logger.info(f"[{self.name}] SELL - SL: +{min_distance} | TP: -{min_distance*2} (+ Controle Global)")
 
             # Volume padrao
             volume = 0.01
@@ -768,6 +883,158 @@ class RealAgentSystem(threading.Thread):
 
         except Exception as e:
             logger.error(f"[{self.name}] Erro ao executar ordem direta: {e}")
+            return False
+
+    def count_open_positions(self):
+        """Conta o número total de posições abertas"""
+        try:
+            positions = mt5.positions_get(symbol=self.symbol)
+            if positions is None:
+                logger.info(f"[{self.name}] MT5 positions_get retornou None")
+                return 0
+
+            count = len(positions)
+            logger.info(f"[{self.name}] DEBUG - {count} posições abertas para {self.symbol}")
+
+            # Log detalhado das posições (apenas primeiras 3 para não lotar o log)
+            if count > 0:
+                for i, pos in enumerate(positions[:3]):
+                    logger.info(f"[{self.name}] Posição {i+1}: {pos.type} {pos.volume} @ {pos.price_open}")
+
+            return count
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro ao contar posições: {e}")
+            return 0
+
+    def check_global_pnl(self):
+        """Monitora P&L global de todas as posições e executa stop loss global"""
+        try:
+            positions = mt5.positions_get(symbol=self.symbol)
+            if not positions:
+                return
+
+            total_pnl = sum(pos.profit for pos in positions)
+            total_positions = len(positions)
+
+            # STOP LOSS GLOBAL: -50 USD ou -5 USD por posição (o que for maior)
+            max_loss_per_position = -5.0  # -5 USD por posição
+            max_total_loss = max(-50.0, max_loss_per_position * total_positions)
+
+            logger.info(f"[{self.name}] GLOBAL P&L: ${total_pnl:.2f} | Posições: {total_positions} | Limite: ${max_total_loss:.2f}")
+
+            # Se perda atingir o limite, fechar TODAS as posições
+            if total_pnl <= max_total_loss:
+                logger.warning(f"[{self.name}] STOP LOSS GLOBAL ATIVADO! Perda: ${total_pnl:.2f}")
+                logger.warning(f"[{self.name}] FECHANDO TODAS AS {total_positions} POSIÇÕES!")
+
+                closed_count = 0
+                for pos in positions:
+                    if self.close_position(pos.ticket):
+                        closed_count += 1
+
+                logger.info(f"[{self.name}] STOP LOSS GLOBAL EXECUTADO: {closed_count}/{total_positions} posições fechadas")
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro no monitoramento global P&L: {e}")
+            return False
+
+    def close_position(self, ticket):
+        """Fecha uma posição específica"""
+        try:
+            position = mt5.positions_get(ticket=ticket)
+            if not position:
+                return False
+
+            pos = position[0]
+
+            # Configurar ordem de fechamento
+            if pos.type == mt5.POSITION_TYPE_BUY:
+                order_type = mt5.ORDER_TYPE_SELL
+                price = mt5.symbol_info_tick(self.symbol).bid
+            else:
+                order_type = mt5.ORDER_TYPE_BUY
+                price = mt5.symbol_info_tick(self.symbol).ask
+
+            request = {
+                "action": mt5.TRADE_ACTION_DEAL,
+                "symbol": self.symbol,
+                "volume": pos.volume,
+                "type": order_type,
+                "position": ticket,
+                "price": price,
+                "deviation": 20,
+                "magic": self.magic_number,
+                "comment": "Stop Loss Global",
+                "type_time": mt5.ORDER_TIME_GTC,
+                "type_filling": mt5.ORDER_FILLING_IOC,
+            }
+
+            result = mt5.order_send(request)
+
+            if result.retcode == mt5.TRADE_RETCODE_DONE:
+                logger.info(f"[{self.name}] Posição {ticket} fechada com sucesso")
+                return True
+            else:
+                logger.error(f"[{self.name}] Erro ao fechar posição {ticket}: {result.retcode}")
+                return False
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro ao fechar posição {ticket}: {e}")
+            return False
+
+    def open_multiple_positions(self, action, quantity, current_price, reason):
+        """SISTEMA PREDITIVO - Abre múltiplas posições para capturar movimento completo"""
+        try:
+            # VERIFICAR LIMITE MÁXIMO DE 10 POSIÇÕES
+            current_positions = self.count_open_positions()
+            max_positions = 10
+
+            if current_positions >= max_positions:
+                logger.info(f"[{self.name}] LIMITE ATINGIDO: {current_positions}/{max_positions} posições abertas")
+                logger.info(f"[{self.name}] NÃO ABRINDO NOVAS POSIÇÕES - AGUARDANDO FECHAMENTO")
+                return False
+
+            # AJUSTAR QUANTIDADE PARA NÃO PASSAR DO LIMITE
+            available_slots = max_positions - current_positions
+            quantity = min(quantity, available_slots)
+
+            logger.info(f"[{self.name}] POSIÇÕES ATUAIS: {current_positions}/{max_positions}")
+            logger.info(f"[{self.name}] INICIANDO ABERTURA DE {quantity} POSICOES {action.upper()}")
+            logger.info(f"[{self.name}] MOTIVO: {reason}")
+
+            success_count = 0
+            failed_count = 0
+
+            for i in range(quantity):
+                # Espaçar as ordens por alguns segundos para evitar rejeições
+                if i > 0:
+                    import time
+                    time.sleep(1)  # 1 segundo entre ordens
+
+                success = self.place_direct_order(action, current_price)
+
+                if success:
+                    success_count += 1
+                    logger.info(f"[{self.name}] POSICAO {i+1}/{quantity} ABERTA COM SUCESSO!")
+                else:
+                    failed_count += 1
+                    logger.error(f"[{self.name}] POSICAO {i+1}/{quantity} FALHOU!")
+
+            logger.info(f"[{self.name}] RESULTADO FINAL: {success_count} SUCESSOS, {failed_count} FALHAS")
+
+            if success_count >= 3:  # Pelo menos 3 de 5 posições abertas = sucesso
+                logger.info(f"[{self.name}] ESTRATEGIA MULTIPLA EXECUTADA COM SUCESSO!")
+                logger.info(f"[{self.name}] PRONTO PARA CAPTURAR TODO O MOVIMENTO {action.upper()}!")
+                return True
+            else:
+                logger.warning(f"[{self.name}] POUCAS POSICOES ABERTAS - ESTRATEGIA PARCIAL")
+                return False
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro ao abrir múltiplas posições: {e}")
             return False
 
     def manage_positions(self):
@@ -913,9 +1180,10 @@ class RealAgentSystem(threading.Thread):
         logger.info(f"[{self.name}] SISTEMA INICIADO - AGENTES PRONTOS!")
         logger.info(f"[{self.name}] ==========================================")
         logger.info(f"[{self.name}] OK - Conexão MT5: ATIVA")
-        logger.info(f"[{self.name}] OK - Stop Loss: 5.0 pontos (BUY e SELL)")
-        logger.info(f"[{self.name}] OK - Take Profit: 10.0 pontos (R/R 2:1)")
-        logger.info(f"[{self.name}] OK - Distancias seguras para corretora FBS")
+        logger.info(f"[{self.name}] OK - SISTEMA PREDITIVO ANTECIPADO ATIVADO!")
+        logger.info(f"[{self.name}] OK - Confiança >= 75% = 5 POSIÇÕES SIMULTÂNEAS")
+        logger.info(f"[{self.name}] OK - Confiança < 75% = 1 posição normal")
+        logger.info(f"[{self.name}] OK - SL/TP Individual + CONTROLE GLOBAL (-$50 ou -$5/pos)")
         logger.info(f"[{self.name}] OK - Ctrl+C: Fecha TODAS as negociações")
         logger.info(f"[{self.name}] ==========================================")
         logger.info(f"[{self.name}] AGUARDANDO SINAIS DOS AGENTES...")
@@ -925,6 +1193,12 @@ class RealAgentSystem(threading.Thread):
             while self.running:
                 # Atualizar estado da conta
                 self.update_account_state()
+
+                # MONITORAMENTO GLOBAL P&L - Verificar ANTES de qualquer análise
+                if self.check_global_pnl():
+                    logger.info(f"[{self.name}] Stop loss global executado - aguardando próximo ciclo")
+                    time.sleep(30)  # Aguardar 30 segundos após fechamento global
+                    continue
 
                 # Verificar horário de trading
                 if self.is_trading_hours():
