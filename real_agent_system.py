@@ -33,7 +33,10 @@ class RealAgentSystem(threading.Thread):
         self.name = config.get('name', 'RealAgent')
         self.symbol = config.get('symbol', 'US100')
         self.magic_number = config.get('magic_number', 234001)
-        self.lot_size = config.get('lot_size', 0.01)
+        self.lot_size = config.get('lot_size', 0.05)  # AUMENTADO para 0.05
+        self.sl_value = 0.02  # Stop Loss em valor absoluto (-0.02) - MAIS AGRESSIVO
+        self.tp_value = 30.00  # Take Profit em valor absoluto (+$30.00)
+        self.trailing_stop_value = 0.90  # Trailing Stop em valor absoluto (-$0.90)
 
         # Estado
         self.is_connected = False
@@ -45,6 +48,12 @@ class RealAgentSystem(threading.Thread):
         # Sistema de análise
         self.setup_analyzer = TradingSetupAnalyzer()
         self.current_setups = {}
+
+        # Controle de Trailing Stop
+        self.position_peaks = {}  # Armazena o maior lucro de cada posição
+
+        # Controle de Consolidação
+        self.consolidation_count = 0
 
         # Sistema multi-agente inteligente
         self.multi_agent_system = MultiAgentTradingSystem()
@@ -668,21 +677,52 @@ class RealAgentSystem(threading.Thread):
             sl = recommendation.stop_loss
             tp = recommendation.take_profit
 
-            # Ajustar para máxima lucratividade
-            stop_distance = abs(price - sl)
-            target_distance = abs(tp - price)
+            # STOP LOSS: diferença -0.02 / TAKE PROFIT: diferença +$30.00 (SEMPRE)
+            if action == "buy":
+                sl = price - self.sl_value                   # SL: diferença -0.02
+                tp = price + self.tp_value                   # TP: diferença +$30.00
+                logger.info(f"[{self.name}] BUY - SL: diferença -0.02 | TP: diferença +$30.00")
+            else:  # sell
+                sl = price + self.sl_value                   # SL: diferença -0.02
+                tp = price - self.tp_value                   # TP: diferença +$30.00
+                logger.info(f"[{self.name}] SELL - SL: diferença -0.02 | TP: diferença +$30.00")
 
-            # Garantir R/R mínimo de 2:1 para máximo lucro
-            min_target_distance = stop_distance * self.profit_multiplier
+            # Verificar se SL/TP estão dentro das distâncias mínimas da corretora
+            min_stop_distance = symbol_info.trade_stops_level * symbol_info.point
+
+            # DEBUG: Imprimir informações do símbolo para investigar
+            logger.info(f"[{self.name}] SYMBOL DEBUG - trade_stops_level: {symbol_info.trade_stops_level}, point: {symbol_info.point}")
+            logger.info(f"[{self.name}] SYMBOL DEBUG - min_stop_distance calculado: {min_stop_distance}")
+
+            # FBS pode exigir distâncias maiores - aumentar significativamente
+            if min_stop_distance == 0 or min_stop_distance < 5.0:
+                min_stop_distance = 5.0  # AUMENTADO de 1.0 para 5.0 pontos
+                logger.warning(f"[{self.name}] Usando distância mínima forçada: {min_stop_distance} pontos")
+
+            # Garantir distância mínima tanto para SL quanto para TP
+            min_distance_required = max(self.sl_value, min_stop_distance)
 
             if action == "buy":
-                sl = max(sl, price * 0.985)  # Stop mais apertado (1.5% vs 1% anterior)
-                tp = max(tp, price + min_target_distance)  # Target mais ambicioso
-                tp = min(tp, price * 1.08)  # Mas não excessivamente distante
-            else:
-                sl = min(sl, price * 1.015)  # Stop mais apertado para SELL
-                tp = min(tp, price - min_target_distance)  # Target mais ambicioso
-                tp = max(tp, price * 0.92)  # Mas não excessivamente distante
+                # Verificar e ajustar SL (deve estar abaixo do preço de compra)
+                if abs(sl - price) < min_distance_required:
+                    sl = price - min_distance_required
+                    logger.warning(f"[{self.name}] SL BUY ajustado para: {sl}")
+
+                # Verificar e ajustar TP (deve estar acima do preço de compra)
+                if abs(tp - price) < min_distance_required:
+                    tp = price + min_distance_required
+                    logger.warning(f"[{self.name}] TP BUY ajustado para: {tp}")
+
+            else:  # sell
+                # Verificar e ajustar SL (deve estar acima do preço de venda)
+                if abs(sl - price) < min_distance_required:
+                    sl = price + min_distance_required
+                    logger.warning(f"[{self.name}] SL SELL ajustado para: {sl}")
+
+                # Verificar e ajustar TP (deve estar abaixo do preço de venda)
+                if abs(tp - price) < min_distance_required:
+                    tp = price - min_distance_required
+                    logger.warning(f"[{self.name}] TP SELL ajustado para: {tp}")
 
             # Montar requisição
             request = {
@@ -697,7 +737,7 @@ class RealAgentSystem(threading.Thread):
                 "magic": self.magic_number,
                 "comment": f"{self.name} - {recommendation.setup_type}",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_FOK,
+                "type_filling": mt5.ORDER_FILLING_RETURN,
             }
 
             # Executar ordem com fallback para diferentes modos de preenchimento
@@ -707,8 +747,8 @@ class RealAgentSystem(threading.Thread):
             if result.retcode == mt5.TRADE_RETCODE_INVALID_FILL:
                 logger.warning(f"[{self.name}] Tentando modo de preenchimento alternativo...")
 
-                # Tentar com ORDER_FILLING_IOC
-                request["type_filling"] = mt5.ORDER_FILLING_IOC
+                # Tentar com ORDER_FILLING_RETURN (FBS compatível)
+                request["type_filling"] = mt5.ORDER_FILLING_RETURN
                 result = mt5.order_send(request)
 
                 if result.retcode != mt5.TRADE_RETCODE_DONE:
@@ -770,7 +810,7 @@ class RealAgentSystem(threading.Thread):
                 "magic": self.magic_number,
                 "comment": f"{self.name} - Auto Trade",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_FOK,
+                "type_filling": mt5.ORDER_FILLING_RETURN,
             }
 
             # Executar ordem com fallback para diferentes modos de preenchimento
@@ -780,8 +820,8 @@ class RealAgentSystem(threading.Thread):
             if result.retcode == mt5.TRADE_RETCODE_INVALID_FILL:
                 logger.warning(f"[{self.name}] Tentando modo de preenchimento alternativo...")
 
-                # Tentar com ORDER_FILLING_IOC
-                request["type_filling"] = mt5.ORDER_FILLING_IOC
+                # Tentar com ORDER_FILLING_RETURN (FBS compatível)
+                request["type_filling"] = mt5.ORDER_FILLING_RETURN
                 result = mt5.order_send(request)
 
                 if result.retcode != mt5.TRADE_RETCODE_DONE:
@@ -812,38 +852,70 @@ class RealAgentSystem(threading.Thread):
 
             # Verificar stops mínimos do símbolo
             min_stop_distance = symbol_info.trade_stops_level * symbol_info.point
-            if min_stop_distance == 0:
-                min_stop_distance = 1.0  # 1 ponto mínimo se não informado
 
-            # Configurar ordem com distâncias mínimas da corretora
-            # Usar SEMPRE distâncias seguras
-            min_distance = max(5.0, min_stop_distance)  # Mínimo 5.0 pontos para segurança
+            # DEBUG: Imprimir informações do símbolo para investigar
+            logger.info(f"[{self.name}] SYMBOL DEBUG - trade_stops_level: {symbol_info.trade_stops_level}, point: {symbol_info.point}")
+            logger.info(f"[{self.name}] SYMBOL DEBUG - min_stop_distance calculado: {min_stop_distance}")
 
+            # FBS pode exigir distâncias maiores - aumentar significativamente
+            if min_stop_distance == 0 or min_stop_distance < 5.0:
+                min_stop_distance = 5.0  # AUMENTADO de 1.0 para 5.0 pontos
+                logger.warning(f"[{self.name}] Usando distância mínima forçada: {min_stop_distance} pontos")
+
+            # STOP LOSS: diferença -0.02 / TAKE PROFIT: diferença +$30.00 (SEMPRE)
             if action == "buy":
                 order_type = mt5.ORDER_TYPE_BUY
                 price = tick.ask
-                sl = price - min_distance                    # Stop Loss obrigatório para MT5
-                tp = price + (min_distance * 2)              # Take Profit obrigatório para MT5
-                logger.info(f"[{self.name}] BUY - SL: -{min_distance} | TP: +{min_distance*2} (+ Controle Global)")
+                sl = price - self.sl_value                   # SL: diferença -0.02
+                tp = price + self.tp_value                   # TP: diferença +$30.00
+                logger.info(f"[{self.name}] BUY - SL: diferença -0.02 | TP: diferença +$30.00")
 
             else:  # sell
                 order_type = mt5.ORDER_TYPE_SELL
                 price = tick.bid
-                sl = price + min_distance                    # Stop Loss obrigatório para MT5
-                tp = price - (min_distance * 2)              # Take Profit obrigatório para MT5
-                logger.info(f"[{self.name}] SELL - SL: +{min_distance} | TP: -{min_distance*2} (+ Controle Global)")
+                sl = price + self.sl_value                   # SL: diferença -0.02
+                tp = price - self.tp_value                   # TP: diferença +$30.00
+                logger.info(f"[{self.name}] SELL - SL: diferença -0.02 | TP: diferença +$30.00")
 
-            # Volume padrao
-            volume = 0.01
+            # Verificar se SL/TP estão dentro das distâncias mínimas da corretora
+            # Garantir distância mínima tanto para SL quanto para TP
+            min_distance_required = max(self.sl_value, min_stop_distance)
 
-            # Determinar filling type baseado nas capacidades do símbolo
-            filling_type = mt5.ORDER_FILLING_FOK  # Fill or Kill como padrão
-            if symbol_info.filling_mode & 1:  # ORDER_FILLING_FOK
-                filling_type = mt5.ORDER_FILLING_FOK
-            elif symbol_info.filling_mode & 2:  # ORDER_FILLING_IOC
-                filling_type = mt5.ORDER_FILLING_IOC
-            elif symbol_info.filling_mode & 4:  # ORDER_FILLING_RETURN
+            if action == "buy":
+                # Verificar e ajustar SL (deve estar abaixo do preço de compra)
+                if abs(sl - price) < min_distance_required:
+                    sl = price - min_distance_required
+                    logger.warning(f"[{self.name}] SL BUY ajustado para: {sl}")
+
+                # Verificar e ajustar TP (deve estar acima do preço de compra)
+                if abs(tp - price) < min_distance_required:
+                    tp = price + min_distance_required
+                    logger.warning(f"[{self.name}] TP BUY ajustado para: {tp}")
+
+            else:  # sell
+                # Verificar e ajustar SL (deve estar acima do preço de venda)
+                if abs(sl - price) < min_distance_required:
+                    sl = price + min_distance_required
+                    logger.warning(f"[{self.name}] SL SELL ajustado para: {sl}")
+
+                # Verificar e ajustar TP (deve estar abaixo do preço de venda)
+                if abs(tp - price) < min_distance_required:
+                    tp = price - min_distance_required
+                    logger.warning(f"[{self.name}] TP SELL ajustado para: {tp}")
+
+            # Volume padrao - AUMENTADO para 0.05
+            volume = 0.05
+
+            # CORREÇÃO: FBS não suporta IOC - usar RETURN como padrão
+            filling_type = mt5.ORDER_FILLING_RETURN  # RETURN funciona na FBS
+
+            # Verificar capacidades do símbolo e ajustar
+            if symbol_info.filling_mode & 4:  # ORDER_FILLING_RETURN
                 filling_type = mt5.ORDER_FILLING_RETURN
+            elif symbol_info.filling_mode & 1:  # ORDER_FILLING_FOK
+                filling_type = mt5.ORDER_FILLING_FOK
+            else:
+                filling_type = mt5.ORDER_FILLING_RETURN  # Fallback para RETURN
 
             # Montar requisicao
             request = {
@@ -916,9 +988,9 @@ class RealAgentSystem(threading.Thread):
             total_pnl = sum(pos.profit for pos in positions)
             total_positions = len(positions)
 
-            # STOP LOSS GLOBAL: -50 USD ou -5 USD por posição (o que for maior)
-            max_loss_per_position = -5.0  # -5 USD por posição
-            max_total_loss = max(-50.0, max_loss_per_position * total_positions)
+            # STOP LOSS GLOBAL: -100 USD ou -10 USD por posição (ajustado para volume 0.05)
+            max_loss_per_position = -10.0  # -10 USD por posição (volume maior)
+            max_total_loss = max(-100.0, max_loss_per_position * total_positions)
 
             logger.info(f"[{self.name}] GLOBAL P&L: ${total_pnl:.2f} | Posições: {total_positions} | Limite: ${max_total_loss:.2f}")
 
@@ -939,6 +1011,151 @@ class RealAgentSystem(threading.Thread):
 
         except Exception as e:
             logger.error(f"[{self.name}] Erro no monitoramento global P&L: {e}")
+            return False
+
+    def check_active_stop_loss(self):
+        """FORÇA o fechamento de posições quando atingir EXATAMENTE -$0.02"""
+        try:
+            positions = mt5.positions_get(symbol=self.symbol)
+            if not positions:
+                return False
+
+            closed_positions = []
+
+            for pos in positions:
+                ticket = pos.ticket
+                current_profit = pos.profit
+
+                # STOP LOSS FORÇADO: Se perda >= -0.02, FECHAR IMEDIATAMENTE
+                if current_profit <= -0.02:
+                    logger.error(f"[{self.name}] 🚨 STOP LOSS FORÇADO ATIVADO!")
+                    logger.error(f"[{self.name}] Posição #{ticket} - Perda: ${current_profit:.2f} >= -$0.02")
+                    logger.error(f"[{self.name}] FECHANDO POSIÇÃO IMEDIATAMENTE!")
+
+                    # Fechar posição IMEDIATAMENTE
+                    if self.close_position(ticket):
+                        logger.info(f"[{self.name}] ✅ STOP LOSS FORÇADO EXECUTADO: Posição #{ticket} fechada com ${current_profit:.2f}")
+                        closed_positions.append(ticket)
+                        # Remover do controle de picos se existir
+                        if ticket in self.position_peaks:
+                            del self.position_peaks[ticket]
+                    else:
+                        logger.error(f"[{self.name}] ❌ FALHA CRÍTICA: Não conseguiu fechar posição #{ticket} com perda ${current_profit:.2f}")
+
+            return len(closed_positions) > 0
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro no stop loss forçado: {e}")
+            return False
+
+    def check_trailing_stop(self):
+        """Monitora e aplica trailing stop para proteger lucros parciais"""
+        try:
+            positions = mt5.positions_get(symbol=self.symbol)
+            if not positions:
+                return False
+
+            current_price = self.get_current_symbol_price()
+            if not current_price:
+                return False
+
+            closed_positions = []
+
+            for pos in positions:
+                ticket = pos.ticket
+                position_type = pos.type  # 0=BUY, 1=SELL
+                open_price = pos.price_open
+                current_profit = pos.profit
+
+                # Atualizar o pico de lucro desta posição
+                if ticket not in self.position_peaks:
+                    self.position_peaks[ticket] = current_profit
+
+                # Se o lucro atual é maior que o pico anterior, atualizar
+                if current_profit > self.position_peaks[ticket]:
+                    self.position_peaks[ticket] = current_profit
+                    logger.info(f"[{self.name}] NOVO PICO - Posição #{ticket}: ${current_profit:.2f}")
+
+                # Verificar se deve aplicar trailing stop
+                peak_profit = self.position_peaks[ticket]
+
+                # Só aplicar trailing stop se já teve lucro significativo (>= $1.00)
+                if peak_profit >= 1.00:
+                    # Se o lucro atual desceu mais de $0.90 do pico, fechar
+                    profit_drop = peak_profit - current_profit
+
+                    if profit_drop >= self.trailing_stop_value:
+                        logger.warning(f"[{self.name}] TRAILING STOP ATIVADO!")
+                        logger.warning(f"[{self.name}] Posição #{ticket} - Pico: ${peak_profit:.2f} | Atual: ${current_profit:.2f} | Queda: ${profit_drop:.2f}")
+
+                        # Fechar posição
+                        if self.close_position(ticket):
+                            logger.info(f"[{self.name}] ✅ TRAILING STOP EXECUTADO: Posição #{ticket} fechada com ${current_profit:.2f}")
+                            closed_positions.append(ticket)
+                            # Remover do controle de picos
+                            del self.position_peaks[ticket]
+                        else:
+                            logger.error(f"[{self.name}] ❌ Falha ao fechar posição #{ticket} por trailing stop")
+
+            return len(closed_positions) > 0
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro no trailing stop: {e}")
+            return False
+
+    def detect_market_consolidation(self):
+        """Detecta se o mercado está consolidado (sem tendência clara)"""
+        try:
+            import numpy as np
+
+            # Obter dados dos últimos 50 períodos
+            rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, 50)
+            if not rates or len(rates) < 50:
+                return False
+
+            # Calcular indicadores - convertendo tudo para float
+            closes = [float(r['close']) for r in rates]
+            highs = [float(r['high']) for r in rates]
+            lows = [float(r['low']) for r in rates]
+
+            # Média móvel de 20 períodos
+            ma20 = float(sum(closes[-20:]) / 20)
+
+            # Desvio padrão (volatilidade)
+            mean_20 = sum(closes[-20:]) / 20
+            variance = sum((x - mean_20)**2 for x in closes[-20:]) / 20
+            std_dev = float(variance ** 0.5)
+
+            # Preço atual
+            current_price = float(closes[-1])
+
+            # Máximo e mínimo dos últimos 20 períodos
+            high_20 = float(max(highs[-20:]))
+            low_20 = float(min(lows[-20:]))
+
+            # Range do mercado
+            market_range = float(high_20 - low_20)
+
+            # Critérios para consolidação:
+            # 1. Preço próximo da média (dentro de 0.5 desvio padrão)
+            # 2. Volatilidade baixa (std < 0.3% do preço)
+            # 3. Range pequeno (< 0.2% do preço)
+
+            price_near_ma = abs(current_price - ma20) < (0.5 * std_dev)
+            low_volatility = std_dev < (current_price * 0.003)  # 0.3%
+            small_range = market_range < (current_price * 0.002)  # 0.2%
+
+            is_consolidated = price_near_ma and (low_volatility or small_range)
+
+            if is_consolidated:
+                logger.warning(f"[{self.name}] 📊 MERCADO CONSOLIDADO DETECTADO:")
+                logger.warning(f"[{self.name}]    Preço: {current_price:.2f} | MA20: {ma20:.2f}")
+                logger.warning(f"[{self.name}]    Volatilidade: {std_dev:.2f} | Range: {market_range:.2f}")
+
+            return is_consolidated
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro na detecção de consolidação: {e}")
             return False
 
     def close_position(self, ticket):
@@ -969,7 +1186,7 @@ class RealAgentSystem(threading.Thread):
                 "magic": self.magic_number,
                 "comment": "Stop Loss Global",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
+                "type_filling": mt5.ORDER_FILLING_RETURN,
             }
 
             result = mt5.order_send(request)
@@ -1065,7 +1282,7 @@ class RealAgentSystem(threading.Thread):
                 "magic": self.magic_number,
                 "comment": f"{self.name} - Close Position",
                 "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
+                "type_filling": mt5.ORDER_FILLING_RETURN,
             }
 
             result = mt5.order_send(request)
@@ -1183,7 +1400,7 @@ class RealAgentSystem(threading.Thread):
         logger.info(f"[{self.name}] OK - SISTEMA PREDITIVO ANTECIPADO ATIVADO!")
         logger.info(f"[{self.name}] OK - Confiança >= 75% = 5 POSIÇÕES SIMULTÂNEAS")
         logger.info(f"[{self.name}] OK - Confiança < 75% = 1 posição normal")
-        logger.info(f"[{self.name}] OK - SL/TP Individual + CONTROLE GLOBAL (-$50 ou -$5/pos)")
+        logger.info(f"[{self.name}] OK - Volume: 0.05 | SL: -$0.10 absoluto | Global: -$100")
         logger.info(f"[{self.name}] OK - Ctrl+C: Fecha TODAS as negociações")
         logger.info(f"[{self.name}] ==========================================")
         logger.info(f"[{self.name}] AGUARDANDO SINAIS DOS AGENTES...")
@@ -1194,22 +1411,46 @@ class RealAgentSystem(threading.Thread):
                 # Atualizar estado da conta
                 self.update_account_state()
 
+                # 🚨 STOP LOSS FORÇADO - MÁXIMA PRIORIDADE! Verificar PRIMEIRO!
+                if self.check_active_stop_loss():
+                    logger.error(f"[{self.name}] STOP LOSS FORÇADO aplicado - continuando monitoramento")
+
                 # MONITORAMENTO GLOBAL P&L - Verificar ANTES de qualquer análise
                 if self.check_global_pnl():
                     logger.info(f"[{self.name}] Stop loss global executado - aguardando próximo ciclo")
                     time.sleep(30)  # Aguardar 30 segundos após fechamento global
                     continue
 
+                # TRAILING STOP - Proteger lucros parciais
+                if self.check_trailing_stop():
+                    logger.info(f"[{self.name}] Trailing stop aplicado - continuando monitoramento")
+
                 # Verificar horário de trading
                 if self.is_trading_hours():
-                    logger.debug(f"[{self.name}] Mercado aberto - analisando...")
+                    # VERIFICAR SE MERCADO ESTÁ CONSOLIDADO ANTES DE NEGOCIAR
+                    if self.detect_market_consolidation():
+                        self.consolidation_count += 1
 
-                    # Analisar mercado
-                    setups_results = self.analyze_market()
+                        if self.consolidation_count >= 3:  # 3 verificações consecutivas
+                            logger.warning(f"[{self.name}] 🛑 MERCADO CONSOLIDADO - PAUSANDO NEGOCIAÇÕES POR 2 MINUTOS")
+                            logger.warning(f"[{self.name}] 💤 Sistema em standby - evitando sinais desnecessários")
+                            self.consolidation_count = 0
+                            time.sleep(120)  # Pausa 2 minutos
+                            continue
+                        else:
+                            logger.info(f"[{self.name}] ⏳ Consolidação detectada ({self.consolidation_count}/3)")
+                    else:
+                        self.consolidation_count = 0
+                        logger.debug(f"[{self.name}] 📈 Mercado ativo - analisando...")
 
-                    # Executar trades se houver oportunidades
-                    if setups_results:
-                        self.execute_trades(setups_results)
+                    # Só analisar se mercado não consolidado
+                    if self.consolidation_count == 0:
+                        # Analisar mercado
+                        setups_results = self.analyze_market()
+
+                        # Executar trades se houver oportunidades
+                        if setups_results:
+                            self.execute_trades(setups_results)
 
                     # Gerenciar posições existentes
                     self.manage_positions()
