@@ -734,7 +734,7 @@ class RealAgentSystem(threading.Thread):
 
             if result.retcode == mt5.TRADE_RETCODE_DONE:
                 logger.info(f"[{self.name}] 🎉 ORDEM EXECUTADA: {action.upper()} {volume} {self.symbol} @ {price:.2f}")
-                logger.info(f"[{self.name}] Stop Loss: {sl:.2f} | Take Profit: {tp:.2f}")
+                logger.info(f"[{self.name}] SEM SL/TP - Controle ativo")
                 return True
             else:
                 logger.error(f"[{self.name}] ❌ Falha na ordem dos agentes: {result.retcode} - {result.comment}")
@@ -762,16 +762,8 @@ class RealAgentSystem(threading.Thread):
             order_type = mt5.ORDER_TYPE_BUY if action == "buy" else mt5.ORDER_TYPE_SELL
             price = tick.ask if action == "buy" else tick.bid
 
-            # Stop Loss fixo de -0.02% e Take Profit de +50%
-            sl_distance = price * 0.0002  # 0.02% stop loss FIXO
-            tp_distance = price * 0.50     # 50% take profit (limite máximo)
-
-            if action == "buy":
-                sl = price - sl_distance
-                tp = price + tp_distance  # +50% take profit
-            else:
-                sl = price + sl_distance
-                tp = price - tp_distance  # -50% take profit para SELL
+            # SEM SL/TP NA ORDEM - Controle 100% por monitoramento ativo
+            logger.info(f"[{self.name}] Ordem sem SL/TP - Controle ativo a cada 0.5s")
 
             # Montar requisição com configurações mais compatíveis
             request = {
@@ -884,7 +876,7 @@ class RealAgentSystem(threading.Thread):
 
             if result and result.retcode == mt5.TRADE_RETCODE_DONE:
                 logger.info(f"[{self.name}] SUCESSO - ORDEM EXECUTADA: {action.upper()} {volume} {self.symbol} @ {price:.2f}")
-                logger.info(f"[{self.name}] Stop Loss: {sl:.2f} | Take Profit: {tp:.2f}")
+                logger.info(f"[{self.name}] SEM SL/TP - Controle ativo")
                 return True
             else:
                 if result:
