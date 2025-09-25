@@ -14,11 +14,35 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - EMERGENCY - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def is_trading_hours():
+    """Verifica se está em horário de trading - US100 9:30-16:00 NY"""
+    import pytz
+    from datetime import datetime, time as datetime_time
+
+    # Fuso horário de Nova York
+    ny_timezone = pytz.timezone('America/New_York')
+    current_time_ny = datetime.now(ny_timezone)
+
+    # Verificar se é dia útil (segunda a sexta)
+    if not (0 <= current_time_ny.weekday() <= 4):
+        return False
+
+    # Horário do mercado: 9:30 às 16:00 (NY)
+    market_open = datetime_time(9, 30, 0)  # 9:30 AM
+    market_close = datetime_time(16, 0, 0)  # 4:00 PM
+
+    is_market_open = market_open <= current_time_ny.time() <= market_close
+
+    if not is_market_open:
+        logger.info(f"🕒 MERCADO FECHADO - Horário NY: {current_time_ny.strftime('%H:%M:%S')} (Abre: 9:30, Fecha: 16:00)")
+
+    return is_market_open
+
 def detect_market_consolidation():
-    """TEMPORARIAMENTE DESABILITADO - Detecta se o mercado está consolidado"""
+    """DESABILITADO - Detecta se o mercado está consolidado"""
     try:
-        # DESABILITADO TEMPORARIAMENTE PARA EVITAR ERRO NUMPY
-        logger.info("📊 Detecção de consolidação temporariamente desabilitada")
+        # DESABILITADO PARA EVITAR ERRO NUMPY
+        logger.info("📊 Detecção de consolidação desabilitada")
         return False  # Sempre retorna False = mercado sempre ativo
 
     except Exception as e:
@@ -40,7 +64,13 @@ def emergency_stop_loss():
 
     while True:
         try:
-            # 1. VERIFICAR SE MERCADO ESTÁ CONSOLIDADO
+            # 1. PRIMEIRO: VERIFICAR SE ESTÁ NO HORÁRIO DE MERCADO
+            if not is_trading_hours():
+                logger.info("💤 MERCADO FECHADO - Sistema em standby...")
+                time.sleep(60)  # Verificar a cada minuto quando fechado
+                continue
+
+            # 2. VERIFICAR SE MERCADO ESTÁ CONSOLIDADO (DESABILITADO)
             is_consolidated = detect_market_consolidation()
 
             if is_consolidated:

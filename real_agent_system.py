@@ -33,7 +33,7 @@ class RealAgentSystem(threading.Thread):
         self.name = config.get('name', 'RealAgent')
         self.symbol = config.get('symbol', 'US100')
         self.magic_number = config.get('magic_number', 234001)
-        self.lot_size = config.get('lot_size', 0.05)  # AUMENTADO para 0.05
+        self.lot_size = config.get('lot_size', 0.01)  # REDUZIDO para 0.01 (segurança)
         self.sl_value = 0.02  # Stop Loss em valor absoluto (-0.02) - MAIS AGRESSIVO
         self.tp_value = 30.00  # Take Profit em valor absoluto (+$30.00)
         self.trailing_stop_value = 0.90  # Trailing Stop em valor absoluto (-$0.90)
@@ -129,18 +129,28 @@ class RealAgentSystem(threading.Thread):
             logger.error(f"[{self.name}] Erro ao atualizar conta: {e}")
 
     def is_trading_hours(self):
-        """Verifica se está em horário de trading - US100 opera 24h"""
-        # US100 (NASDAQ-100) opera 24h durante dias úteis
-        # Só bloquear nos fins de semana
-        current_time = datetime.now()
-        weekday = current_time.weekday()
+        """Verifica se está em horário de trading - US100 9:30-16:00 NY"""
+        import pytz
+        from datetime import time as datetime_time
 
-        # Segunda a sexta opera 24h (0=Monday, 4=Friday)
-        if 0 <= weekday <= 4:
-            return True
+        # Fuso horário de Nova York
+        ny_timezone = pytz.timezone('America/New_York')
+        current_time_ny = datetime.now(ny_timezone)
 
-        # Sábado e domingo: não opera
-        return False
+        # Verificar se é dia útil (segunda a sexta)
+        if not (0 <= current_time_ny.weekday() <= 4):
+            return False
+
+        # Horário do mercado: 9:30 às 16:00 (NY)
+        market_open = datetime_time(9, 30, 0)  # 9:30 AM
+        market_close = datetime_time(16, 0, 0)  # 4:00 PM
+
+        is_market_open = market_open <= current_time_ny.time() <= market_close
+
+        if not is_market_open:
+            logger.info(f"[{self.name}] 🕒 MERCADO FECHADO - Horário NY: {current_time_ny.strftime('%H:%M:%S')} (Abre: 9:30, Fecha: 16:00)")
+
+        return is_market_open
 
     def analyze_market(self):
         """Analisa o mercado usando sistema multi-agente inteligente"""
@@ -903,8 +913,8 @@ class RealAgentSystem(threading.Thread):
                     tp = price - min_distance_required
                     logger.warning(f"[{self.name}] TP SELL ajustado para: {tp}")
 
-            # Volume padrao - AUMENTADO para 0.05
-            volume = 0.05
+            # Volume padrão - SEGURO 0.01
+            volume = 0.01
 
             # CORREÇÃO: FBS não suporta IOC - usar RETURN como padrão
             filling_type = mt5.ORDER_FILLING_RETURN  # RETURN funciona na FBS
@@ -1033,7 +1043,7 @@ class RealAgentSystem(threading.Thread):
                     logger.error(f"[{self.name}] FECHANDO POSIÇÃO IMEDIATAMENTE!")
 
                     # Fechar posição IMEDIATAMENTE
-                    if self.close_position(ticket):
+                    if self.close_position(pos):
                         logger.info(f"[{self.name}] ✅ STOP LOSS FORÇADO EXECUTADO: Posição #{ticket} fechada com ${current_profit:.2f}")
                         closed_positions.append(ticket)
                         # Remover do controle de picos se existir
@@ -1104,47 +1114,59 @@ class RealAgentSystem(threading.Thread):
             return False
 
     def detect_market_consolidation(self):
-        """Detecta se o mercado está consolidado (sem tendência clara)"""
+        """Detecta se o mercado está consolidado (sem tendência clara) - SEM NUMPY"""
         try:
-            import numpy as np
-
             # Obter dados dos últimos 50 períodos
             rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, 50)
             if not rates or len(rates) < 50:
                 return False
 
-            # Calcular indicadores - convertendo tudo para float
-            closes = [float(r['close']) for r in rates]
-            highs = [float(r['high']) for r in rates]
-            lows = [float(r['low']) for r in rates]
+            # Calcular indicadores usando Python puro (sem numpy)
+            closes = []
+            highs = []
+            lows = []
+
+            for r in rates:
+                closes.append(float(r['close']))
+                highs.append(float(r['high']))
+                lows.append(float(r['low']))
 
             # Média móvel de 20 períodos
-            ma20 = float(sum(closes[-20:]) / 20)
+            recent_20_closes = closes[-20:]
+            ma20 = sum(recent_20_closes) / len(recent_20_closes)
 
-            # Desvio padrão (volatilidade)
-            mean_20 = sum(closes[-20:]) / 20
-            variance = sum((x - mean_20)**2 for x in closes[-20:]) / 20
-            std_dev = float(variance ** 0.5)
+            # Desvio padrão (volatilidade) calculado manualmente
+            mean_20 = ma20
+            sum_squared_diffs = sum((x - mean_20)**2 for x in recent_20_closes)
+            variance = sum_squared_diffs / len(recent_20_closes)
+            std_dev = variance ** 0.5
 
             # Preço atual
-            current_price = float(closes[-1])
+            current_price = closes[-1]
 
             # Máximo e mínimo dos últimos 20 períodos
-            high_20 = float(max(highs[-20:]))
-            low_20 = float(min(lows[-20:]))
+            recent_20_highs = highs[-20:]
+            recent_20_lows = lows[-20:]
+            high_20 = max(recent_20_highs)
+            low_20 = min(recent_20_lows)
 
             # Range do mercado
-            market_range = float(high_20 - low_20)
+            market_range = high_20 - low_20
 
-            # Critérios para consolidação:
+            # Critérios para consolidação (usando valores booleanos simples):
             # 1. Preço próximo da média (dentro de 0.5 desvio padrão)
+            price_diff = abs(current_price - ma20)
+            price_near_ma = price_diff < (0.5 * std_dev)
+
             # 2. Volatilidade baixa (std < 0.3% do preço)
+            volatility_threshold = current_price * 0.003  # 0.3%
+            low_volatility = std_dev < volatility_threshold
+
             # 3. Range pequeno (< 0.2% do preço)
+            range_threshold = current_price * 0.002  # 0.2%
+            small_range = market_range < range_threshold
 
-            price_near_ma = abs(current_price - ma20) < (0.5 * std_dev)
-            low_volatility = std_dev < (current_price * 0.003)  # 0.3%
-            small_range = market_range < (current_price * 0.002)  # 0.2%
-
+            # Combinação dos critérios
             is_consolidated = price_near_ma and (low_volatility or small_range)
 
             if is_consolidated:
