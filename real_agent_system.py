@@ -696,52 +696,11 @@ class RealAgentSystem(threading.Thread):
             sl = recommendation.stop_loss
             tp = recommendation.take_profit
 
-            # STOP LOSS: diferença -0.02 / TAKE PROFIT: diferença +$30.00 (SEMPRE)
+            # SEM SL/TP NA ORDEM - Controle 100% por monitoramento ativo
             if action == "buy":
-                sl = price - self.sl_value                   # SL: diferença -0.02
-                tp = price + self.tp_value                   # TP: diferença +$30.00
-                logger.info(f"[{self.name}] BUY - SL: diferença -0.02 | TP: diferença +$30.00")
+                logger.info(f"[{self.name}] BUY - SEM SL/TP (controle por monitoramento ativo a cada 0.5s)")
             else:  # sell
-                sl = price + self.sl_value                   # SL: diferença -0.02
-                tp = price - self.tp_value                   # TP: diferença +$30.00
-                logger.info(f"[{self.name}] SELL - SL: diferença -0.02 | TP: diferença +$30.00")
-
-            # Verificar se SL/TP estão dentro das distâncias mínimas da corretora
-            min_stop_distance = symbol_info.trade_stops_level * symbol_info.point
-
-            # DEBUG: Imprimir informações do símbolo para investigar
-            logger.info(f"[{self.name}] SYMBOL DEBUG - trade_stops_level: {symbol_info.trade_stops_level}, point: {symbol_info.point}")
-            logger.info(f"[{self.name}] SYMBOL DEBUG - min_stop_distance calculado: {min_stop_distance}")
-
-            # FBS pode exigir distâncias maiores - aumentar significativamente
-            if min_stop_distance == 0 or min_stop_distance < 5.0:
-                min_stop_distance = 5.0  # AUMENTADO de 1.0 para 5.0 pontos
-                logger.warning(f"[{self.name}] Usando distância mínima forçada: {min_stop_distance} pontos")
-
-            # Garantir distância mínima tanto para SL quanto para TP
-            min_distance_required = max(self.sl_value, min_stop_distance)
-
-            if action == "buy":
-                # Verificar e ajustar SL (deve estar abaixo do preço de compra)
-                if abs(sl - price) < min_distance_required:
-                    sl = price - min_distance_required
-                    logger.warning(f"[{self.name}] SL BUY ajustado para: {sl}")
-
-                # Verificar e ajustar TP (deve estar acima do preço de compra)
-                if abs(tp - price) < min_distance_required:
-                    tp = price + min_distance_required
-                    logger.warning(f"[{self.name}] TP BUY ajustado para: {tp}")
-
-            else:  # sell
-                # Verificar e ajustar SL (deve estar acima do preço de venda)
-                if abs(sl - price) < min_distance_required:
-                    sl = price + min_distance_required
-                    logger.warning(f"[{self.name}] SL SELL ajustado para: {sl}")
-
-                # Verificar e ajustar TP (deve estar abaixo do preço de venda)
-                if abs(tp - price) < min_distance_required:
-                    tp = price - min_distance_required
-                    logger.warning(f"[{self.name}] TP SELL ajustado para: {tp}")
+                logger.info(f"[{self.name}] SELL - SEM SL/TP (controle por monitoramento ativo a cada 0.5s)")
 
             # Montar requisição
             request = {
@@ -750,8 +709,6 @@ class RealAgentSystem(threading.Thread):
                 "volume": volume,
                 "type": order_type,
                 "price": price,
-                "sl": sl,
-                "tp": tp,
                 "deviation": 20,
                 "magic": self.magic_number,
                 "comment": f"{self.name} - {recommendation.setup_type}",
@@ -823,8 +780,6 @@ class RealAgentSystem(threading.Thread):
                 "volume": volume,
                 "type": order_type,
                 "price": price,
-                "sl": sl,
-                "tp": tp,
                 "deviation": 20,
                 "magic": self.magic_number,
                 "comment": f"{self.name} - Auto Trade",
@@ -881,46 +836,16 @@ class RealAgentSystem(threading.Thread):
                 min_stop_distance = 5.0  # AUMENTADO de 1.0 para 5.0 pontos
                 logger.warning(f"[{self.name}] Usando distância mínima forçada: {min_stop_distance} pontos")
 
-            # STOP LOSS: diferença -0.02 / TAKE PROFIT: diferença +$30.00 (SEMPRE)
+            # SEM SL/TP NA ORDEM - Controle 100% por monitoramento ativo
             if action == "buy":
                 order_type = mt5.ORDER_TYPE_BUY
                 price = tick.ask
-                sl = price - self.sl_value                   # SL: diferença -0.02
-                tp = price + self.tp_value                   # TP: diferença +$30.00
-                logger.info(f"[{self.name}] BUY - SL: diferença -0.02 | TP: diferença +$30.00")
+                logger.info(f"[{self.name}] BUY - SEM SL/TP (controle por monitoramento ativo a cada 0.5s)")
 
             else:  # sell
                 order_type = mt5.ORDER_TYPE_SELL
                 price = tick.bid
-                sl = price + self.sl_value                   # SL: diferença -0.02
-                tp = price - self.tp_value                   # TP: diferença +$30.00
-                logger.info(f"[{self.name}] SELL - SL: diferença -0.02 | TP: diferença +$30.00")
-
-            # Verificar se SL/TP estão dentro das distâncias mínimas da corretora
-            # Garantir distância mínima tanto para SL quanto para TP
-            min_distance_required = max(self.sl_value, min_stop_distance)
-
-            if action == "buy":
-                # Verificar e ajustar SL (deve estar abaixo do preço de compra)
-                if abs(sl - price) < min_distance_required:
-                    sl = price - min_distance_required
-                    logger.warning(f"[{self.name}] SL BUY ajustado para: {sl}")
-
-                # Verificar e ajustar TP (deve estar acima do preço de compra)
-                if abs(tp - price) < min_distance_required:
-                    tp = price + min_distance_required
-                    logger.warning(f"[{self.name}] TP BUY ajustado para: {tp}")
-
-            else:  # sell
-                # Verificar e ajustar SL (deve estar acima do preço de venda)
-                if abs(sl - price) < min_distance_required:
-                    sl = price + min_distance_required
-                    logger.warning(f"[{self.name}] SL SELL ajustado para: {sl}")
-
-                # Verificar e ajustar TP (deve estar abaixo do preço de venda)
-                if abs(tp - price) < min_distance_required:
-                    tp = price - min_distance_required
-                    logger.warning(f"[{self.name}] TP SELL ajustado para: {tp}")
+                logger.info(f"[{self.name}] SELL - SEM SL/TP (controle por monitoramento ativo a cada 0.5s)")
 
             # Volume padrão - SEGURO 0.01
             volume = 0.01
@@ -943,8 +868,6 @@ class RealAgentSystem(threading.Thread):
                 "volume": volume,
                 "type": order_type,
                 "price": price,
-                "sl": sl,
-                "tp": tp,
                 "deviation": 20,
                 "magic": self.magic_number,
                 "comment": f"{self.name} - DIRECT ORDER",
@@ -953,7 +876,7 @@ class RealAgentSystem(threading.Thread):
             }
 
             # Log detalhado da requisição
-            logger.info(f"[{self.name}] EXECUTANDO {action.upper()}: price={price:.2f}, sl={sl:.2f}, tp={tp:.2f}")
+            logger.info(f"[{self.name}] EXECUTANDO {action.upper()}: price={price:.2f} (SEM SL/TP - controle ativo)")
             logger.info(f"[{self.name}] Filling type: {filling_type}, Symbol info: {symbol_info.filling_mode}")
 
             # Executar ordem
