@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 SISTEMA DE EMERGÊNCIA - STOP LOSS FORÇADO
-FECHA QUALQUER POSIÇÃO COM PERDA >= -$0.02
-PARA QUANDO MERCADO ESTÁ CONSOLIDADO
+FECHA QUALQUER POSIÇÃO COM PERDA >= -$0.99
+OTIMIZADO PARA VOLATILIDADE DO US100 - PERMITE MERCADO RESPIRAR
 """
 
 import MetaTrader5 as mt5
@@ -57,7 +57,7 @@ def emergency_stop_loss():
         logger.error("FALHA AO INICIALIZAR MT5!")
         return False
 
-    logger.info("🚨 SISTEMA DE EMERGÊNCIA ATIVO - MONITORANDO STOP LOSS -$0.02")
+    logger.info("🚨 SISTEMA DE EMERGÊNCIA ATIVO - MONITORANDO STOP LOSS -$0.99")
     logger.info("📊 DETECTANDO CONSOLIDAÇÃO PARA EVITAR SINAIS DESNECESSÁRIOS")
 
     consolidation_count = 0
@@ -99,8 +99,8 @@ def emergency_stop_loss():
                     ticket = pos.ticket
                     profit = pos.profit
 
-                    # VERIFICAÇÃO CRÍTICA: Se perda >= -$0.02
-                    if profit <= -0.02:
+                    # VERIFICAÇÃO CRÍTICA: Se perda >= -$0.99
+                    if profit <= -0.99:
                         logger.error(f"🚨 PERDA DETECTADA: Posição #{ticket} = ${profit:.2f}")
                         logger.error(f"🚨 FECHANDO IMEDIATAMENTE!")
 
@@ -126,7 +126,7 @@ def emergency_stop_loss():
                             "price": price,
                             "deviation": 20,
                             "magic": 234001,
-                            "comment": "EMERGENCY STOP LOSS -0.02",
+                            "comment": "EMERGENCY STOP LOSS -0.99",
                             "type_time": mt5.ORDER_TIME_GTC,
                             "type_filling": mt5.ORDER_FILLING_RETURN,
                         }

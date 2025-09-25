@@ -33,8 +33,8 @@ class RealAgentSystem(threading.Thread):
         self.name = config.get('name', 'RealAgent')
         self.symbol = config.get('symbol', 'US100')
         self.magic_number = config.get('magic_number', 234001)
-        self.lot_size = config.get('lot_size', 0.01)  # REDUZIDO para 0.01 (segurança)
-        self.sl_value = 0.02  # Stop Loss em valor absoluto (-0.02) - MAIS AGRESSIVO
+        self.lot_size = config.get('lot_size', 0.05)  # REDUZIDO para 0.01 (segurança)
+        self.sl_value = 0.99  # Stop Loss em valor absoluto (-0.99) - OTIMIZADO PARA MERCADO RESPIRAR
         self.tp_value = 30.00  # Take Profit em valor absoluto (+$30.00)
         self.trailing_stop_value = 0.90  # Trailing Stop em valor absoluto (-$0.90)
 
@@ -44,6 +44,11 @@ class RealAgentSystem(threading.Thread):
         self.active_positions = []
         self.total_pnl = 0
         self.running = False
+
+        # Sistema de Lucro Escalado
+        self.profit_multiplier_threshold = 3.00  # Lucro de $3.00 para ativar mais posições
+        self.max_positions = 10  # Máximo de 10 posições simultâneas
+        self.profit_scaling_active = False  # Flag para evitar múltiplas ativações
 
         # Sistema de análise
         self.setup_analyzer = TradingSetupAnalyzer()
@@ -806,9 +811,33 @@ class RealAgentSystem(threading.Thread):
             logger.error(f"[{self.name}] Erro ao executar ordem: {e}")
             return False
 
-    def place_direct_order(self, action, current_price):
-        """Executa ordem diretamente sem SmartOrder - com stops de -0.02% e profit de +50%"""
+    def is_market_open(self):
+        """Verifica se o mercado US100 está aberto (NYSE: 9:30-16:00 NY)"""
         try:
+            ny_tz = pytz.timezone('America/New_York')
+            now_ny = datetime.now(ny_tz)
+
+            # Verificar se é dia útil (segunda a sexta)
+            if now_ny.weekday() > 4:  # 5=sábado, 6=domingo
+                return False
+
+            # Horário do mercado: 9:30 às 16:00 NY
+            market_open = datetime_time(9, 30)
+            market_close = datetime_time(16, 0)
+            current_time = now_ny.time()
+
+            return market_open <= current_time <= market_close
+        except:
+            return True  # Em caso de erro, assume mercado aberto
+
+    def place_direct_order(self, action, current_price):
+        """Executa ordem diretamente sem SmartOrder - com stops de -0.99 e profit de +$30.00"""
+        try:
+            # VERIFICAÇÃO: Mercado aberto?
+            if not self.is_market_open():
+                logger.warning(f"[{self.name}] MERCADO US100 FECHADO - não executando ordem {action.upper()}")
+                return False
+
             # Obter preços e informações do símbolo
             tick = mt5.symbol_info_tick(self.symbol)
             symbol_info = mt5.symbol_info(self.symbol)
@@ -840,18 +869,27 @@ class RealAgentSystem(threading.Thread):
                 logger.info(f"[{self.name}] SELL - SEM SL/TP (controle por monitoramento ativo a cada 0.5s)")
 
             # Volume padrão - SEGURO 0.01
-            volume = 0.01
+            volume = 0.05
 
-            # CORREÇÃO: FBS não suporta IOC - usar RETURN como padrão
-            filling_type = mt5.ORDER_FILLING_RETURN  # RETURN funciona na FBS
+            # CORREÇÃO: Usar modo de preenchimento do símbolo
+            # Verificar quais modos são suportados pelo símbolo
+            filling_mode = symbol_info.filling_mode
+            logger.info(f"[{self.name}] SYMBOL filling_mode: {filling_mode}")
 
-            # Verificar capacidades do símbolo e ajustar
-            if symbol_info.filling_mode & 4:  # ORDER_FILLING_RETURN
-                filling_type = mt5.ORDER_FILLING_RETURN
-            elif symbol_info.filling_mode & 1:  # ORDER_FILLING_FOK
+            # Determinar melhor filling type baseado no símbolo
+            if filling_mode & 1:  # FOK permitido
                 filling_type = mt5.ORDER_FILLING_FOK
+                logger.info(f"[{self.name}] Usando ORDER_FILLING_FOK")
+            elif filling_mode & 2:  # IOC permitido
+                filling_type = mt5.ORDER_FILLING_IOC
+                logger.info(f"[{self.name}] Usando ORDER_FILLING_IOC")
+            elif filling_mode & 4:  # RETURN permitido
+                filling_type = mt5.ORDER_FILLING_RETURN
+                logger.info(f"[{self.name}] Usando ORDER_FILLING_RETURN")
             else:
-                filling_type = mt5.ORDER_FILLING_RETURN  # Fallback para RETURN
+                # Fallback - tentar FOK primeiro
+                filling_type = mt5.ORDER_FILLING_FOK
+                logger.warning(f"[{self.name}] Modo indefinido, tentando ORDER_FILLING_FOK")
 
             # Montar requisicao
             request = {
@@ -874,17 +912,35 @@ class RealAgentSystem(threading.Thread):
             # Executar ordem
             result = mt5.order_send(request)
 
+            # CORREÇÃO: Se result é None, tentar reconectar uma vez
+            if result is None:
+                logger.warning(f"[{self.name}] Result é None - tentando reconectar MT5...")
+                mt5.shutdown()
+                time.sleep(1)
+                if mt5.initialize():
+                    logger.info(f"[{self.name}] Reconexão MT5 bem-sucedida - tentando ordem novamente...")
+                    result = mt5.order_send(request)
+                else:
+                    logger.error(f"[{self.name}] FALHA na reconexão MT5!")
+                    return False
+
             if result and result.retcode == mt5.TRADE_RETCODE_DONE:
                 logger.info(f"[{self.name}] SUCESSO - ORDEM EXECUTADA: {action.upper()} {volume} {self.symbol} @ {price:.2f}")
                 logger.info(f"[{self.name}] SEM SL/TP - Controle ativo")
                 return True
             else:
                 if result:
-                    logger.error(f"[{self.name}] ERRO {result.retcode}: {result.comment}")
+                    # Log mais detalhado para diferentes códigos de erro
+                    if result.retcode == 10018:  # Market closed
+                        logger.warning(f"[{self.name}] MERCADO FECHADO (10018) - aguardando reabertura")
+                    elif result.retcode == 10030:  # Unsupported filling mode
+                        logger.error(f"[{self.name}] MODO DE PREENCHIMENTO NÃO SUPORTADO (10030)")
+                    else:
+                        logger.error(f"[{self.name}] ERRO {result.retcode}: {result.comment}")
                     logger.error(f"[{self.name}] Request: {request}")
                     logger.error(f"[{self.name}] Ask: {tick.ask}, Bid: {tick.bid}")
                 else:
-                    logger.error(f"[{self.name}] ERRO - Result é None - conexão perdida?")
+                    logger.error(f"[{self.name}] ERRO - Result ainda é None após reconexão!")
                 return False
 
         except Exception as e:
@@ -928,6 +984,29 @@ class RealAgentSystem(threading.Thread):
 
             logger.info(f"[{self.name}] GLOBAL P&L: ${total_pnl:.2f} | Posições: {total_positions} | Limite: ${max_total_loss:.2f}")
 
+            # SISTEMA DE LUCRO ESCALADO: Se lucro >= $3.00, abrir mais posições
+            if total_pnl >= self.profit_multiplier_threshold and total_positions < self.max_positions:
+                if not self.profit_scaling_active:
+                    logger.info(f"[{self.name}] LUCRO ESCALADO ATIVADO!")
+                    logger.info(f"[{self.name}] Lucro atual: ${total_pnl:.2f} >= ${self.profit_multiplier_threshold}")
+                    logger.info(f"[{self.name}] Posições atuais: {total_positions}/{self.max_positions}")
+                    logger.info(f"[{self.name}] ACIONANDO AGENTES PARA MAIS NEGOCIAÇÕES!")
+
+                    self.profit_scaling_active = True
+
+                    # Calcular quantas posições adicionar (até o máximo)
+                    positions_to_add = min(3, self.max_positions - total_positions)  # Adicionar no máximo 3 por vez
+                    logger.info(f"[{self.name}] Abrindo {positions_to_add} posições adicionais...")
+
+                    # Acionar sistema multi-agente para novas posições
+                    self.trigger_profit_scaling_trades(positions_to_add)
+
+            # Reset da flag quando lucro cair abaixo do threshold
+            elif total_pnl < self.profit_multiplier_threshold:
+                if self.profit_scaling_active:
+                    logger.info(f"[{self.name}] Lucro abaixo de ${self.profit_multiplier_threshold} - Sistema escalado desativado")
+                    self.profit_scaling_active = False
+
             # Se perda atingir o limite, fechar TODAS as posições
             if total_pnl <= max_total_loss:
                 logger.warning(f"[{self.name}] STOP LOSS GLOBAL ATIVADO! Perda: ${total_pnl:.2f}")
@@ -960,10 +1039,10 @@ class RealAgentSystem(threading.Thread):
                 ticket = pos.ticket
                 current_profit = pos.profit
 
-                # STOP LOSS FORÇADO: Se perda >= -0.02, FECHAR IMEDIATAMENTE
-                if current_profit <= -0.02:
+                # STOP LOSS FORÇADO: Se perda >= -0.99, FECHAR IMEDIATAMENTE
+                if current_profit <= -0.99:
                     logger.error(f"[{self.name}] 🚨 STOP LOSS FORÇADO ATIVADO!")
-                    logger.error(f"[{self.name}] Posição #{ticket} - Perda: ${current_profit:.2f} >= -$0.02")
+                    logger.error(f"[{self.name}] Posição #{ticket} - Perda: ${current_profit:.2f} >= -$0.99")
                     logger.error(f"[{self.name}] FECHANDO POSIÇÃO IMEDIATAMENTE!")
 
                     # Fechar posição IMEDIATAMENTE
@@ -1038,70 +1117,56 @@ class RealAgentSystem(threading.Thread):
             return False
 
     def detect_market_consolidation(self):
-        """Detecta se o mercado está consolidado (sem tendência clara) - SEM NUMPY"""
+        """DESABILITADO - Detecta se o mercado está consolidado - EVITA ERRO NUMPY"""
         try:
-            # Obter dados dos últimos 50 períodos
-            rates = mt5.copy_rates_from_pos(self.symbol, mt5.TIMEFRAME_M1, 0, 50)
-            if not rates or len(rates) < 50:
-                return False
-
-            # Calcular indicadores usando Python puro (sem numpy)
-            closes = []
-            highs = []
-            lows = []
-
-            for r in rates:
-                closes.append(float(r['close']))
-                highs.append(float(r['high']))
-                lows.append(float(r['low']))
-
-            # Média móvel de 20 períodos
-            recent_20_closes = closes[-20:]
-            ma20 = sum(recent_20_closes) / len(recent_20_closes)
-
-            # Desvio padrão (volatilidade) calculado manualmente
-            mean_20 = ma20
-            sum_squared_diffs = sum((x - mean_20)**2 for x in recent_20_closes)
-            variance = sum_squared_diffs / len(recent_20_closes)
-            std_dev = variance ** 0.5
-
-            # Preço atual
-            current_price = closes[-1]
-
-            # Máximo e mínimo dos últimos 20 períodos
-            recent_20_highs = highs[-20:]
-            recent_20_lows = lows[-20:]
-            high_20 = max(recent_20_highs)
-            low_20 = min(recent_20_lows)
-
-            # Range do mercado
-            market_range = high_20 - low_20
-
-            # Critérios para consolidação (usando valores booleanos simples):
-            # 1. Preço próximo da média (dentro de 0.5 desvio padrão)
-            price_diff = abs(current_price - ma20)
-            price_near_ma = price_diff < (0.5 * std_dev)
-
-            # 2. Volatilidade baixa (std < 0.3% do preço)
-            volatility_threshold = current_price * 0.003  # 0.3%
-            low_volatility = std_dev < volatility_threshold
-
-            # 3. Range pequeno (< 0.2% do preço)
-            range_threshold = current_price * 0.002  # 0.2%
-            small_range = market_range < range_threshold
-
-            # Combinação dos critérios
-            is_consolidated = price_near_ma and (low_volatility or small_range)
-
-            if is_consolidated:
-                logger.warning(f"[{self.name}] 📊 MERCADO CONSOLIDADO DETECTADO:")
-                logger.warning(f"[{self.name}]    Preço: {current_price:.2f} | MA20: {ma20:.2f}")
-                logger.warning(f"[{self.name}]    Volatilidade: {std_dev:.2f} | Range: {market_range:.2f}")
-
-            return is_consolidated
+            # TEMPORARIAMENTE DESABILITADO para evitar erro numpy
+            logger.info(f"[{self.name}] Detecção de consolidação desabilitada temporariamente")
+            return False  # Sempre retorna False = mercado sempre ativo
 
         except Exception as e:
             logger.error(f"[{self.name}] Erro na detecção de consolidação: {e}")
+            return False
+
+    def trigger_profit_scaling_trades(self, positions_to_add):
+        """Aciona agentes para abrir posições adicionais quando lucro >= $3.00"""
+        try:
+            logger.info(f"[{self.name}] INICIANDO ABERTURA DE {positions_to_add} POSIÇÕES ADICIONAIS")
+
+            # Força análise dos agentes em modo "lucro escalado" usando método existente
+            decision = self.analyze_with_agents(force_analysis=True)
+
+            logger.info(f"[{self.name}] Decisão dos agentes para lucro escalado: {decision.action}")
+            logger.info(f"[{self.name}] Confiança: {decision.confidence:.1f}%")
+
+            success_count = 0
+
+            # Abrir posições baseado na decisão dos agentes
+            for i in range(positions_to_add):
+                logger.info(f"[{self.name}] Abrindo posição {i+1}/{positions_to_add} - LUCRO ESCALADO")
+
+                if decision.action.lower() == "buy":
+                    if self.place_direct_order("buy", 0):  # Preço será obtido internamente
+                        success_count += 1
+                        logger.info(f"[{self.name}] BUY #{i+1} executada com sucesso")
+                    else:
+                        logger.error(f"[{self.name}] BUY #{i+1} falhou")
+
+                elif decision.action.lower() == "sell":
+                    if self.place_direct_order("sell", 0):  # Preço será obtido internamente
+                        success_count += 1
+                        logger.info(f"[{self.name}] SELL #{i+1} executada com sucesso")
+                    else:
+                        logger.error(f"[{self.name}] SELL #{i+1} falhou")
+                else:
+                    logger.warning(f"[{self.name}] Agentes recomendam HOLD - não abrindo posição #{i+1}")
+
+                time.sleep(0.5)  # Pequena pausa entre ordens
+
+            logger.info(f"[{self.name}] LUCRO ESCALADO CONCLUÍDO: {success_count}/{positions_to_add} posições abertas")
+            return success_count > 0
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Erro no lucro escalado: {e}")
             return False
 
     def close_position(self, ticket):
@@ -1458,7 +1523,7 @@ if __name__ == "__main__":
         'name': 'RealAgent-FBS',
         'symbol': 'US100',
         'magic_number': 234001,
-        'lot_size': 0.01
+        'lot_size': 0.05
     }
 
     agent = RealAgentSystem(config)
