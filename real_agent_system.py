@@ -242,18 +242,27 @@ class RealAgentSystem(threading.Thread):
     def create_mock_options_data(self, current_price, option_type='call'):
         """Cria dados simulados de opções para análise"""
         import pandas as pd
-        import numpy as np
+        import math
+        import random
 
         # Garantir que current_price é float
         current_price = float(current_price)
 
         # Criar strikes de forma mais robusta
         strike_step = current_price * 0.005
-        strikes = np.arange(current_price * 0.95, current_price * 1.05, strike_step)
+        # Criar strikes usando Python puro
+        strikes = []
+        strike = current_price * 0.95
+        while strike <= current_price * 1.05:
+            strikes.append(strike)
+            strike += strike_step
 
         # Garantir que temos pelo menos alguns strikes
         if len(strikes) < 5:
-            strikes = np.linspace(current_price * 0.95, current_price * 1.05, 10)
+            strikes = []
+            for i in range(10):
+                strike = current_price * 0.95 + (current_price * 0.1) * i / 9
+                strikes.append(strike)
 
         data = []
         for strike in strikes:
@@ -264,15 +273,15 @@ class RealAgentSystem(threading.Thread):
 
                 if option_type == 'call':
                     delta = max(0.0, min(1.0, (moneyness - 0.95) * 5))
-                    gamma = np.exp(-abs(moneyness - 1) * 10) * 100
-                    charm = np.random.uniform(-50, 50)
+                    gamma = math.exp(-abs(moneyness - 1) * 10) * 100
+                    charm = random.uniform(-50, 50)
                 else:  # put
                     delta = max(-1.0, min(0.0, (0.95 - moneyness) * 5))
-                    gamma = np.exp(-abs(moneyness - 1) * 10) * 100
-                    charm = np.random.uniform(-50, 50)
+                    gamma = math.exp(-abs(moneyness - 1) * 10) * 100
+                    charm = random.uniform(-50, 50)
 
                 # GEX (Gamma Exposure) simulado
-                gex = float(gamma * np.random.uniform(100, 1000))
+                gex = float(gamma * random.uniform(100, 1000))
 
                 data.append({
                     'strike': float(strike),
@@ -280,7 +289,7 @@ class RealAgentSystem(threading.Thread):
                     'GAMMA': float(gamma),
                     'CHARM': float(charm),
                     'GEX': float(gex),
-                    'THETA': float(np.random.uniform(-10, -1))
+                    'THETA': float(random.uniform(-10, -1))
                 })
             except Exception as e:
                 logger.error(f"Erro ao criar dados para strike {strike}: {e}")
