@@ -8,7 +8,16 @@
       "Bash(findstr:*)",
       "Bash(where python)",
       "Bash(echo:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(tasklist)",
+      "Bash(taskkill:*)",
+      "Bash(wmic process where:*)",
+      "Bash(netstat:*)",
+      "WebFetch(domain:www.mql5.com)",
+      "Bash(git add:*)",
+      "Bash(del nul)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

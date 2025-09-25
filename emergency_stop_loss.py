@@ -134,29 +134,40 @@ def emergency_stop_loss():
                         # EXECUTAR FECHAMENTO
                         result = mt5.order_send(close_request)
 
-                        if result.retcode == mt5.TRADE_RETCODE_DONE:
+                        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
                             logger.info(f"✅ EMERGÊNCIA EXECUTADA: Posição #{ticket} fechada com ${profit:.2f}")
                         else:
-                            logger.error(f"❌ FALHA NO FECHAMENTO: #{ticket} - Erro: {result.retcode}")
+                            error_code = result.retcode if result else "None"
+                            logger.error(f"❌ FALHA NO FECHAMENTO: #{ticket} - Erro: {error_code}")
 
-                            # Tentar outros modos de preenchimento
-                            close_request["type_filling"] = mt5.ORDER_FILLING_FOK
-                            result2 = mt5.order_send(close_request)
+                            # Tentar ORDEM MARKET sem stops
+                            market_close_request = {
+                                "action": mt5.TRADE_ACTION_DEAL,
+                                "symbol": "US100",
+                                "volume": volume,
+                                "type": order_type,
+                                "position": ticket,
+                                "deviation": 50,  # Maior desvio
+                                "magic": 234001,
+                                "comment": "EMERGENCY MARKET CLOSE",
+                            }
 
-                            if result2.retcode == mt5.TRADE_RETCODE_DONE:
-                                logger.info(f"✅ EMERGÊNCIA EXECUTADA (2ª tentativa): #{ticket} fechada")
+                            result2 = mt5.order_send(market_close_request)
+
+                            if result2 and result2.retcode == mt5.TRADE_RETCODE_DONE:
+                                logger.info(f"✅ EMERGÊNCIA EXECUTADA (MARKET): #{ticket} fechada")
                             else:
-                                logger.error(f"❌ FALHA CRÍTICA: Não conseguiu fechar #{ticket}")
+                                logger.error(f"❌ FALHA CRÍTICA: Não conseguiu fechar #{ticket} mesmo com MARKET")
 
             else:
                 if not is_consolidated:
                     logger.info("📊 Nenhuma posição US100 aberta - mercado ativo")
 
-            # Aguardar baseado no estado do mercado
+            # VERIFICAÇÃO ULTRA RÁPIDA PARA STOP LOSS -$0.02
             if is_consolidated:
-                time.sleep(10)  # Pausa maior em consolidação
+                time.sleep(2)  # Pausa reduzida mesmo em consolidação
             else:
-                time.sleep(2)   # Verificação rápida em mercado ativo
+                time.sleep(0.5)   # VERIFICAÇÃO A CADA 0.5 SEGUNDOS (ULTRA RÁPIDO)
 
         except Exception as e:
             logger.error(f"ERRO NO SISTEMA DE EMERGÊNCIA: {e}")

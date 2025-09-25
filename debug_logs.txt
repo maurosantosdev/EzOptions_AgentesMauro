@@ -1,0 +1,633 @@
+2025-09-24 12:27:33,603 - multi_agent_system - INFO - [MultiAgent] Agente criado: Analista CHARM-01
+2025-09-24 12:27:33,604 - multi_agent_system - INFO - [MultiAgent] Agente criado: Analista DELTA-02
+2025-09-24 12:27:33,604 - multi_agent_system - INFO - [MultiAgent] Agente criado: Analista GAMMA-03
+2025-09-24 12:27:33,604 - multi_agent_system - INFO - [MultiAgent] Agente criado: Analista VWAP-04
+2025-09-24 12:27:33,604 - multi_agent_system - INFO - [MultiAgent] Agente criado: Analista Volume-05
+2025-09-24 12:27:33,604 - multi_agent_system - INFO - [MultiAgent] Agente criado: Analista Price Action-06
+2025-09-24 12:27:33,608 - multi_agent_system - INFO - [MultiAgent] Agente criado: Gerente de Risco-07
+2025-09-24 12:27:33,608 - multi_agent_system - INFO - [MultiAgent] Agente criado: Coordenador de Setups-08
+2025-09-24 12:27:33,608 - multi_agent_system - INFO - [MultiAgent] Agente criado: Otimizador de Estrategia-09
+2025-09-24 12:27:33,608 - multi_agent_system - INFO - [MultiAgent] Agente criado: Tomador de Decisao Final-10
+2025-09-24 12:27:33,608 - multi_agent_system - INFO - [MultiAgent] Sistema com 10 agentes criado com sucesso
+2025-09-24 12:27:33,608 - __main__ - INFO - [RealAgent-FBS] Tentando conectar ao MT5...
+2025-09-24 12:27:33,608 - __main__ - INFO - [RealAgent-FBS] Server: FBS-Demo, Login: 103486755
+2025-09-24 12:27:33,622 - __main__ - INFO - [RealAgent-FBS] Conectado ao MT5 com sucesso!
+2025-09-24 12:27:33,623 - __main__ - INFO - [RealAgent-FBS] ==========================================
+2025-09-24 12:27:33,623 - __main__ - INFO - [RealAgent-FBS] SISTEMA INICIADO - AGENTES PRONTOS!
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] ==========================================
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] OK - Conexão MT5: ATIVA
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] OK - SISTEMA PREDITIVO ANTECIPADO ATIVADO!
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] OK - Confiança >= 75% = 5 POSIÇÕES SIMULTÂNEAS
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] OK - Confiança < 75% = 1 posição normal
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] OK - Stop Loss: 5.0 pontos | Take Profit: 10.0 pontos
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] OK - Ctrl+C: Fecha TODAS as negociações
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] ==========================================
+2025-09-24 12:27:33,624 - __main__ - INFO - [RealAgent-FBS] AGUARDANDO SINAIS DOS AGENTES...
+2025-09-24 12:27:33,627 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24453.35 -> 24487.85)
+2025-09-24 12:27:33,627 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 50.0%
+2025-09-24 12:27:33,628 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:27:33,628 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:27:33,628 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:27:33,629 - multi_agent_system - INFO - [Coordenador] Setup identificado: NO_CLEAR_SETUP (Conf: 0.3%)
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [BUY CONTEXTO] Coordenador de Setups: NO_CLEAR_SETUP -> Sinal bullish
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.0
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [Consenso] BUY: 2 votos (força: 1.0)
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:27:33,630 - multi_agent_system - INFO - [Consenso] HOLD: 6 votos (força: 2.8)
+2025-09-24 12:27:33,631 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: NO_CLEAR_SETUP - R/R: 2.3
+2025-09-24 12:27:33,631 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 50.0%)
+2025-09-24 12:27:33,633 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: NO_CLEAR_SETUP
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 50.0%
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 50.0%
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24487.85, sl=24492.85, tp=24477.85
+2025-09-24 12:27:33,634 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:27:33,985 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24487.85
+2025-09-24 12:27:33,986 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24492.85 | Take Profit: 24477.85
+2025-09-24 12:27:33,986 - __main__ - INFO - [RealAgent-FBS] ORDEM SIMPLES EXECUTADA: SELL
+2025-09-24 12:27:33,986 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:27:33,991 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 50.0%)
+2025-09-24 12:28:03,994 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24452.60 -> 24493.72)
+2025-09-24 12:28:03,994 - __main__ - INFO - [RealAgent-FBS] VOLUME BAIXO: 31 (média: 410)
+2025-09-24 12:28:03,994 - __main__ - INFO - [RealAgent-FBS] ACELERACAO DETECTADA: 17.6 vs -9.5
+2025-09-24 12:28:03,994 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 65.0%
+2025-09-24 12:28:03,994 - __main__ - INFO - [RealAgent-FBS] PREDICAO MODERADA: Alta detectada. Força: 65.0%
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:28:03,995 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [Coordenador] Setup identificado: NO_CLEAR_SETUP (Conf: 0.3%)
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [BUY CONTEXTO] Coordenador de Setups: NO_CLEAR_SETUP -> Sinal bullish
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.0
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [Consenso] BUY: 2 votos (força: 1.0)
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [Consenso] HOLD: 6 votos (força: 2.8)
+2025-09-24 12:28:03,996 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: NO_CLEAR_SETUP - R/R: 2.3
+2025-09-24 12:28:03,997 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 50.0%)
+2025-09-24 12:28:03,997 - __main__ - INFO - [RealAgent-FBS] BOOST CONFIANÇA: 50.0% -> 65.0% (Tendência Moderada)
+2025-09-24 12:28:03,998 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: NO_CLEAR_SETUP
+2025-09-24 12:28:03,998 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 65.0%
+2025-09-24 12:28:03,998 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:28:03,998 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 65.0%
+2025-09-24 12:28:03,998 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:28:03,999 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:28:03,999 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24493.72, sl=24498.72, tp=24483.72
+2025-09-24 12:28:03,999 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:28:04,470 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24493.72
+2025-09-24 12:28:04,471 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24498.72 | Take Profit: 24483.72
+2025-09-24 12:28:04,471 - __main__ - INFO - [RealAgent-FBS] ORDEM SIMPLES EXECUTADA: SELL
+2025-09-24 12:28:04,471 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:28:04,478 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 65.0%)
+2025-09-24 12:28:34,485 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24452.60 -> 24490.72)
+2025-09-24 12:28:34,486 - __main__ - INFO - [RealAgent-FBS] ACELERACAO DETECTADA: 14.6 vs -9.5
+2025-09-24 12:28:34,486 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 65.0%
+2025-09-24 12:28:34,487 - __main__ - INFO - [RealAgent-FBS] PREDICAO MODERADA: Alta detectada. Força: 65.0%
+2025-09-24 12:28:34,488 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:28:34,489 - multi_agent_system - INFO - [Analista CHARM-01] Analise: BULLISH_BREAKOUT (Conf: 0.8%)
+2025-09-24 12:28:34,489 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:28:34,490 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: CONSOLIDATED (Conf: 0.8%)
+2025-09-24 12:28:34,490 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:28:34,490 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:28:34,491 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:28:34,491 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:28:34,491 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:28:34,492 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:28:34,492 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:28:34,492 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:28:34,492 - multi_agent_system - INFO - [Coordenador] Setup identificado: SETUP5_CONSOLIDATED (Conf: 0.8%)
+2025-09-24 12:28:34,493 - multi_agent_system - INFO - [SETUP 1 - BULLISH BREAKOUT] Analista CHARM: BULLISH_BREAKOUT -> Detectando alta forte
+2025-09-24 12:28:34,493 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:28:34,493 - multi_agent_system - INFO - [SETUP 5 - CONSOLIDACAO] Analista GAMMA: CONSOLIDATED -> Aguardando breakout
+2025-09-24 12:28:34,493 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:28:34,494 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:28:34,494 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:28:34,494 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:28:34,494 - multi_agent_system - INFO - [SETUP 5 - CONSOLIDACAO] Coordenador de Setups: SETUP5_CONSOLIDATED -> Aguardando breakout
+2025-09-24 12:28:34,495 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:28:34,495 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:28:34,495 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.0
+2025-09-24 12:28:34,495 - multi_agent_system - INFO - [Consenso] BUY: 1 votos (força: 0.8)
+2025-09-24 12:28:34,496 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:28:34,496 - multi_agent_system - INFO - [Consenso] HOLD: 7 votos (força: 3.9)
+2025-09-24 12:28:34,496 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: SETUP5_CONSOLIDATED - R/R: 2.3
+2025-09-24 12:28:34,497 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 50.0%)
+2025-09-24 12:28:34,497 - __main__ - INFO - [RealAgent-FBS] BOOST CONFIANÇA: 50.0% -> 65.0% (Tendência Moderada)
+2025-09-24 12:28:34,497 - __main__ - INFO - [RealAgent-FBS] MERCADO CONSOLIDADO DETECTADO - NAO OPERANDO
+2025-09-24 12:28:34,497 - __main__ - INFO - [RealAgent-FBS] Setup: SETUP5_CONSOLIDATED - AGUARDANDO BREAKOUT
+2025-09-24 12:28:34,508 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 65.0%)
+2025-09-24 12:29:04,511 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24459.35 -> 24488.35)
+2025-09-24 12:29:04,511 - __main__ - INFO - [RealAgent-FBS] VOLUME BAIXO: 27 (média: 410)
+2025-09-24 12:29:04,511 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 20.0%
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Analista CHARM-01] Analise: BULLISH_BREAKOUT (Conf: 0.8%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:29:04,512 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [Coordenador] Setup identificado: NO_CLEAR_SETUP (Conf: 0.3%)
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [SETUP 1 - BULLISH BREAKOUT] Analista CHARM: BULLISH_BREAKOUT -> Detectando alta forte
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [BUY CONTEXTO] Coordenador de Setups: NO_CLEAR_SETUP -> Sinal bullish
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [6 SETUPS] BUY executado - Setup detectado com 3 votos, Forca: 1.9
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [Consenso] BUY: 3 votos (força: 1.9)
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [Consenso] HOLD: 5 votos (força: 2.4)
+2025-09-24 12:29:04,513 - multi_agent_system - INFO - [Decisao Final] BUY - Setup: NO_CLEAR_SETUP - R/R: 2.3
+2025-09-24 12:29:04,514 - multi_agent_system - INFO - [MultiAgent] Decisao final: BUY (Conf: 63.0%)
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: BUY - Setup: NO_CLEAR_SETUP
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 63.0%
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 63.0%
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] BUY - SL: -5.0 | TP: +10.0
+2025-09-24 12:29:04,516 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO BUY: price=24490.35, sl=24485.35, tp=24500.35
+2025-09-24 12:29:04,517 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:29:04,874 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: BUY 0.01 US100 @ 24490.35
+2025-09-24 12:29:04,874 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24485.35 | Take Profit: 24500.35
+2025-09-24 12:29:04,874 - __main__ - INFO - [RealAgent-FBS] ORDEM SIMPLES EXECUTADA: BUY
+2025-09-24 12:29:04,874 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: BUY - Agentes Multi-Agente
+2025-09-24 12:29:04,877 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: BUY (Conf: 63.0%)
+2025-09-24 12:29:34,879 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24459.35 -> 24491.10)
+2025-09-24 12:29:34,879 - __main__ - INFO - [RealAgent-FBS] VOLUME BAIXO: 191 (média: 426)
+2025-09-24 12:29:34,880 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 35.0%
+2025-09-24 12:29:34,880 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:29:34,880 - multi_agent_system - INFO - [Analista CHARM-01] Analise: BULLISH_BREAKOUT (Conf: 0.8%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: CONSOLIDATED (Conf: 0.8%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:29:34,881 - multi_agent_system - INFO - [Coordenador] Setup identificado: SETUP5_CONSOLIDATED (Conf: 0.8%)
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [SETUP 1 - BULLISH BREAKOUT] Analista CHARM: BULLISH_BREAKOUT -> Detectando alta forte
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [SETUP 5 - CONSOLIDACAO] Analista GAMMA: CONSOLIDATED -> Aguardando breakout
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [SETUP 5 - CONSOLIDACAO] Coordenador de Setups: SETUP5_CONSOLIDATED -> Aguardando breakout
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.0
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [Consenso] BUY: 1 votos (força: 0.8)
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:29:34,882 - multi_agent_system - INFO - [Consenso] HOLD: 7 votos (força: 3.9)
+2025-09-24 12:29:34,883 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: SETUP5_CONSOLIDATED - R/R: 2.3
+2025-09-24 12:29:34,883 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 50.0%)
+2025-09-24 12:29:34,883 - __main__ - INFO - [RealAgent-FBS] MERCADO CONSOLIDADO DETECTADO - NAO OPERANDO
+2025-09-24 12:29:34,883 - __main__ - INFO - [RealAgent-FBS] Setup: SETUP5_CONSOLIDATED - AGUARDANDO BREAKOUT
+2025-09-24 12:29:34,885 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 50.0%)
+2025-09-24 12:30:04,889 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24463.10 -> 24490.60)
+2025-09-24 12:30:04,889 - __main__ - INFO - [RealAgent-FBS] VOLUME BAIXO: 36 (média: 397)
+2025-09-24 12:30:04,890 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 35.0%
+2025-09-24 12:30:04,890 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:30:04,891 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:30:04,891 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:30:04,891 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:30:04,891 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:30:04,891 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:30:04,891 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [Coordenador] Setup identificado: NO_CLEAR_SETUP (Conf: 0.3%)
+2025-09-24 12:30:04,892 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [BUY CONTEXTO] Coordenador de Setups: NO_CLEAR_SETUP -> Sinal bullish
+2025-09-24 12:30:04,893 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.0
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [Consenso] BUY: 2 votos (força: 1.0)
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [Consenso] HOLD: 6 votos (força: 2.8)
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: NO_CLEAR_SETUP - R/R: 2.3
+2025-09-24 12:30:04,894 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 50.0%)
+2025-09-24 12:30:04,898 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: NO_CLEAR_SETUP
+2025-09-24 12:30:04,898 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 50.0%
+2025-09-24 12:30:04,898 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:30:04,898 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 50.0%
+2025-09-24 12:30:04,898 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:30:04,899 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:30:04,899 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24490.60, sl=24495.60, tp=24480.60
+2025-09-24 12:30:04,899 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:30:05,264 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24490.60
+2025-09-24 12:30:05,264 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24495.60 | Take Profit: 24480.60
+2025-09-24 12:30:05,264 - __main__ - INFO - [RealAgent-FBS] ORDEM SIMPLES EXECUTADA: SELL
+2025-09-24 12:30:05,264 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:30:05,267 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 50.0%)
+2025-09-24 12:30:35,270 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24463.10 -> 24490.35)
+2025-09-24 12:30:35,270 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: ALTA, Força: 35.0%
+2025-09-24 12:30:35,270 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Analista DELTA-02] Analise: BEARISH_TARGET (Conf: 0.7%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [Coordenador] Setup identificado: NO_CLEAR_SETUP (Conf: 0.3%)
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:30:35,271 - multi_agent_system - INFO - [SELL CONTEXTO] Analista DELTA: BEARISH_TARGET -> Sinal bearish
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [BUY CONTEXTO] Coordenador de Setups: NO_CLEAR_SETUP -> Sinal bullish
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.0
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [Consenso] BUY: 2 votos (força: 1.0)
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.0)
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [Consenso] HOLD: 6 votos (força: 2.8)
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: NO_CLEAR_SETUP - R/R: 2.3
+2025-09-24 12:30:35,272 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 50.0%)
+2025-09-24 12:30:35,274 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: NO_CLEAR_SETUP
+2025-09-24 12:30:35,274 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 50.0%
+2025-09-24 12:30:35,274 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:30:35,274 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 50.0%
+2025-09-24 12:30:35,274 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:30:35,275 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:30:35,275 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24490.35, sl=24495.35, tp=24480.35
+2025-09-24 12:30:35,275 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:30:35,934 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24490.35
+2025-09-24 12:30:35,934 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24495.35 | Take Profit: 24480.35
+2025-09-24 12:30:35,934 - __main__ - INFO - [RealAgent-FBS] ORDEM SIMPLES EXECUTADA: SELL
+2025-09-24 12:30:35,934 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:30:35,937 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 50.0%)
+2025-09-24 12:31:05,940 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24473.10 -> 24482.05)
+2025-09-24 12:31:05,940 - __main__ - INFO - [RealAgent-FBS] VOLUME BAIXO: 35 (média: 392)
+2025-09-24 12:31:05,940 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: QUEDA, Força: 30.0%
+2025-09-24 12:31:05,940 - __main__ - INFO - [RealAgent-FBS] QUEDA - CHARM AJUSTADO: [-31.92520551660167, -26.508289406542445, -8.741735728045775]
+2025-09-24 12:31:05,940 - __main__ - INFO - [RealAgent-FBS] QUEDA - DELTA AJUSTADO: [0.7499999999999938, 0.7749999999999932, 0.7999999999999927]
+2025-09-24 12:31:05,941 - __main__ - INFO - [RealAgent-FBS] QUEDA - GAMMA AJUSTADO: [-67.0320046035648, -63.76281516217822, -60.653065971264255]
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Analista DELTA-02] Analise: PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:31:05,941 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [Coordenador] Setup identificado: SETUP3_PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Analista DELTA: PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Coordenador de Setups: SETUP3_PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 3 votos, Forca: 2.3
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [Consenso] BUY: 1 votos (força: 0.8)
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [Consenso] SELL: 3 votos (força: 2.3)
+2025-09-24 12:31:05,942 - multi_agent_system - INFO - [Consenso] HOLD: 6 votos (força: 2.8)
+2025-09-24 12:31:05,943 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: SETUP3_PULLBACK_TOP - R/R: 2.3
+2025-09-24 12:31:05,943 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 76.0%)
+2025-09-24 12:31:05,944 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: SETUP3_PULLBACK_TOP
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 76.0%
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 76.0%
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] PREVISAO FORTE DE BAIXA - ABRINDO 5 SELL POSITIONS!
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] INICIANDO ABERTURA DE 5 POSICOES SELL
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] MOTIVO: FORTE BAIXA PREVISTA
+2025-09-24 12:31:05,945 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:05,946 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24482.05, sl=24487.05, tp=24472.05
+2025-09-24 12:31:05,946 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:06,464 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24482.05
+2025-09-24 12:31:06,465 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24487.05 | Take Profit: 24472.05
+2025-09-24 12:31:06,465 - __main__ - INFO - [RealAgent-FBS] POSICAO 1/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:07,466 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:07,467 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24482.30, sl=24487.30, tp=24472.30
+2025-09-24 12:31:07,467 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:08,057 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24482.30
+2025-09-24 12:31:08,057 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24487.30 | Take Profit: 24472.30
+2025-09-24 12:31:08,058 - __main__ - INFO - [RealAgent-FBS] POSICAO 2/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:09,059 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:09,059 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24484.30, sl=24489.30, tp=24474.30
+2025-09-24 12:31:09,059 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:09,419 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24484.30
+2025-09-24 12:31:09,419 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24489.30 | Take Profit: 24474.30
+2025-09-24 12:31:09,419 - __main__ - INFO - [RealAgent-FBS] POSICAO 3/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:10,420 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:10,420 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24485.05, sl=24490.05, tp=24475.05
+2025-09-24 12:31:10,420 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:10,787 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24485.05
+2025-09-24 12:31:10,787 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24490.05 | Take Profit: 24475.05
+2025-09-24 12:31:10,787 - __main__ - INFO - [RealAgent-FBS] POSICAO 4/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:11,788 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:11,789 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24481.55, sl=24486.55, tp=24471.55
+2025-09-24 12:31:11,789 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:12,254 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24481.55
+2025-09-24 12:31:12,254 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24486.55 | Take Profit: 24471.55
+2025-09-24 12:31:12,255 - __main__ - INFO - [RealAgent-FBS] POSICAO 5/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:12,255 - __main__ - INFO - [RealAgent-FBS] RESULTADO FINAL: 5 SUCESSOS, 0 FALHAS
+2025-09-24 12:31:12,255 - __main__ - INFO - [RealAgent-FBS] ESTRATEGIA MULTIPLA EXECUTADA COM SUCESSO!
+2025-09-24 12:31:12,255 - __main__ - INFO - [RealAgent-FBS] PRONTO PARA CAPTURAR TODO O MOVIMENTO SELL!
+2025-09-24 12:31:12,255 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:31:12,258 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 76.0%)
+2025-09-24 12:31:42,262 - __main__ - INFO - [RealAgent-FBS] VERDE - TENDÊNCIA REAL: SUBINDO (24473.10 -> 24483.35)
+2025-09-24 12:31:42,263 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: QUEDA, Força: 15.0%
+2025-09-24 12:31:42,263 - __main__ - INFO - [RealAgent-FBS] QUEDA - CHARM AJUSTADO: [-44.0053295226181, -39.286626381067464, -17.757832440757667]
+2025-09-24 12:31:42,264 - __main__ - INFO - [RealAgent-FBS] QUEDA - DELTA AJUSTADO: [0.7500000000000049, 0.7750000000000055, 0.8000000000000049]
+2025-09-24 12:31:42,264 - __main__ - INFO - [RealAgent-FBS] QUEDA - GAMMA AJUSTADO: [-67.03200460356331, -63.762815162176665, -60.65306597126278]
+2025-09-24 12:31:42,264 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:31:42,265 - multi_agent_system - INFO - [Analista CHARM-01] Analise: BEARISH_BREAKOUT (Conf: 0.9%)
+2025-09-24 12:31:42,265 - multi_agent_system - INFO - [Analista DELTA-02] Analise: PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:31:42,265 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:31:42,265 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:31:42,265 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:31:42,266 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:31:42,266 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:31:42,266 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:31:42,266 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:31:42,266 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:31:42,266 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [Coordenador] Setup identificado: SETUP3_PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [SETUP 2 - BEARISH BREAKOUT] Analista CHARM: BEARISH_BREAKOUT -> Detectando baixa forte
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Analista DELTA: PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:31:42,267 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Coordenador de Setups: SETUP3_PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 4 votos, Forca: 3.2
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [Consenso] BUY: 1 votos (força: 0.8)
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [Consenso] SELL: 4 votos (força: 3.2)
+2025-09-24 12:31:42,268 - multi_agent_system - INFO - [Consenso] HOLD: 5 votos (força: 2.4)
+2025-09-24 12:31:42,269 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: SETUP3_PULLBACK_TOP - R/R: 2.3
+2025-09-24 12:31:42,269 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 80.8%)
+2025-09-24 12:31:42,272 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: SETUP3_PULLBACK_TOP
+2025-09-24 12:31:42,272 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 80.8%
+2025-09-24 12:31:42,272 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:31:42,273 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 80.8%
+2025-09-24 12:31:42,273 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:31:42,273 - __main__ - INFO - [RealAgent-FBS] PREVISAO FORTE DE BAIXA - ABRINDO 5 SELL POSITIONS!
+2025-09-24 12:31:42,273 - __main__ - INFO - [RealAgent-FBS] INICIANDO ABERTURA DE 5 POSICOES SELL
+2025-09-24 12:31:42,273 - __main__ - INFO - [RealAgent-FBS] MOTIVO: FORTE BAIXA PREVISTA
+2025-09-24 12:31:42,274 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:42,274 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24483.35, sl=24488.35, tp=24473.35
+2025-09-24 12:31:42,274 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:42,623 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24483.35
+2025-09-24 12:31:42,623 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24488.35 | Take Profit: 24473.35
+2025-09-24 12:31:42,623 - __main__ - INFO - [RealAgent-FBS] POSICAO 1/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:43,624 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:43,624 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24483.85, sl=24488.85, tp=24473.85
+2025-09-24 12:31:43,624 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:44,178 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24483.85
+2025-09-24 12:31:44,178 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24488.85 | Take Profit: 24473.85
+2025-09-24 12:31:44,178 - __main__ - INFO - [RealAgent-FBS] POSICAO 2/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:45,179 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:45,179 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24481.72, sl=24486.72, tp=24471.72
+2025-09-24 12:31:45,179 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:45,598 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24481.72
+2025-09-24 12:31:45,599 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24486.72 | Take Profit: 24471.72
+2025-09-24 12:31:45,599 - __main__ - INFO - [RealAgent-FBS] POSICAO 3/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:46,599 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:46,600 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24478.72, sl=24483.72, tp=24468.72
+2025-09-24 12:31:46,600 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:46,969 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24478.72
+2025-09-24 12:31:46,969 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24483.72 | Take Profit: 24468.72
+2025-09-24 12:31:46,969 - __main__ - INFO - [RealAgent-FBS] POSICAO 4/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:47,970 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:31:47,970 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24477.35, sl=24482.35, tp=24467.35
+2025-09-24 12:31:47,971 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:31:48,587 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24477.35
+2025-09-24 12:31:48,588 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24482.35 | Take Profit: 24467.35
+2025-09-24 12:31:48,588 - __main__ - INFO - [RealAgent-FBS] POSICAO 5/5 ABERTA COM SUCESSO!
+2025-09-24 12:31:48,588 - __main__ - INFO - [RealAgent-FBS] RESULTADO FINAL: 5 SUCESSOS, 0 FALHAS
+2025-09-24 12:31:48,588 - __main__ - INFO - [RealAgent-FBS] ESTRATEGIA MULTIPLA EXECUTADA COM SUCESSO!
+2025-09-24 12:31:48,588 - __main__ - INFO - [RealAgent-FBS] PRONTO PARA CAPTURAR TODO O MOVIMENTO SELL!
+2025-09-24 12:31:48,588 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:31:48,595 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 80.8%)
+2025-09-24 12:32:18,598 - __main__ - INFO - [RealAgent-FBS] VERMELHO - TENDÊNCIA REAL: DESCENDO (24482.35 -> 24479.60)
+2025-09-24 12:32:18,598 - __main__ - INFO - [RealAgent-FBS] VOLUME BAIXO: 129 (média: 396)
+2025-09-24 12:32:18,598 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: QUEDA, Força: 15.0%
+2025-09-24 12:32:18,598 - __main__ - INFO - [RealAgent-FBS] QUEDA - CHARM AJUSTADO: [-33.61073591030055, -31.83348604153062, -19.940017185439316]
+2025-09-24 12:32:18,599 - __main__ - INFO - [RealAgent-FBS] QUEDA - DELTA AJUSTADO: [0.7499999999999938, 0.7749999999999932, 0.7999999999999938]
+2025-09-24 12:32:18,599 - __main__ - INFO - [RealAgent-FBS] QUEDA - GAMMA AJUSTADO: [-67.0320046035648, -63.76281516217822, -60.65306597126412]
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Analista DELTA-02] Analise: PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Analista Volume-05] Analise: LOW_VOLUME (Conf: 0.6%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:32:18,599 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [Coordenador] Setup identificado: SETUP3_PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Analista DELTA: PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [SELL CONTEXTO] Analista Volume: LOW_VOLUME -> Sinal bearish
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Coordenador de Setups: SETUP3_PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:32:18,600 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 3 votos, Forca: 2.3
+2025-09-24 12:32:18,601 - multi_agent_system - INFO - [Consenso] BUY: 1 votos (força: 0.8)
+2025-09-24 12:32:18,601 - multi_agent_system - INFO - [Consenso] SELL: 3 votos (força: 2.3)
+2025-09-24 12:32:18,601 - multi_agent_system - INFO - [Consenso] HOLD: 6 votos (força: 2.8)
+2025-09-24 12:32:18,601 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: SETUP3_PULLBACK_TOP - R/R: 2.3
+2025-09-24 12:32:18,601 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 76.0%)
+2025-09-24 12:32:18,602 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: SETUP3_PULLBACK_TOP
+2025-09-24 12:32:18,602 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 76.0%
+2025-09-24 12:32:18,602 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 76.0%
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] PREVISAO FORTE DE BAIXA - ABRINDO 5 SELL POSITIONS!
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] INICIANDO ABERTURA DE 5 POSICOES SELL
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] MOTIVO: FORTE BAIXA PREVISTA
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24479.60, sl=24484.60, tp=24469.60
+2025-09-24 12:32:18,603 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:18,957 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24479.60
+2025-09-24 12:32:18,957 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24484.60 | Take Profit: 24469.60
+2025-09-24 12:32:18,957 - __main__ - INFO - [RealAgent-FBS] POSICAO 1/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:19,957 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:19,958 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24480.10, sl=24485.10, tp=24470.10
+2025-09-24 12:32:19,958 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:20,317 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24480.10
+2025-09-24 12:32:20,317 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24485.10 | Take Profit: 24470.10
+2025-09-24 12:32:20,317 - __main__ - INFO - [RealAgent-FBS] POSICAO 2/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:21,318 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:21,318 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24479.47, sl=24484.47, tp=24469.47
+2025-09-24 12:32:21,318 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:21,747 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24479.47
+2025-09-24 12:32:21,748 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24484.47 | Take Profit: 24469.47
+2025-09-24 12:32:21,748 - __main__ - INFO - [RealAgent-FBS] POSICAO 3/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:22,749 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:22,750 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24480.35, sl=24485.35, tp=24470.35
+2025-09-24 12:32:22,750 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:23,110 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24480.35
+2025-09-24 12:32:23,111 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24485.35 | Take Profit: 24470.35
+2025-09-24 12:32:23,111 - __main__ - INFO - [RealAgent-FBS] POSICAO 4/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:24,112 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:24,112 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24480.85, sl=24485.85, tp=24470.85
+2025-09-24 12:32:24,112 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:24,480 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24480.85
+2025-09-24 12:32:24,481 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24485.85 | Take Profit: 24470.85
+2025-09-24 12:32:24,481 - __main__ - INFO - [RealAgent-FBS] POSICAO 5/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:24,481 - __main__ - INFO - [RealAgent-FBS] RESULTADO FINAL: 5 SUCESSOS, 0 FALHAS
+2025-09-24 12:32:24,481 - __main__ - INFO - [RealAgent-FBS] ESTRATEGIA MULTIPLA EXECUTADA COM SUCESSO!
+2025-09-24 12:32:24,481 - __main__ - INFO - [RealAgent-FBS] PRONTO PARA CAPTURAR TODO O MOVIMENTO SELL!
+2025-09-24 12:32:24,481 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:32:24,484 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 76.0%)
+2025-09-24 12:32:54,486 - __main__ - INFO - [RealAgent-FBS] VERMELHO - TENDÊNCIA REAL: DESCENDO (24482.35 -> 24482.10)
+2025-09-24 12:32:54,487 - __main__ - INFO - [RealAgent-FBS] ANÁLISE PREDITIVA - Direção: QUEDA, Força: 15.0%
+2025-09-24 12:32:54,487 - __main__ - INFO - [RealAgent-FBS] QUEDA - CHARM AJUSTADO: [-38.19381980210772, -8.742793563296935, -2.4316086725142085]
+2025-09-24 12:32:54,487 - __main__ - INFO - [RealAgent-FBS] QUEDA - DELTA AJUSTADO: [0.7499999999999971, 0.7749999999999966, 0.799999999999996]
+2025-09-24 12:32:54,487 - __main__ - INFO - [RealAgent-FBS] QUEDA - GAMMA AJUSTADO: [-67.03200460356436, -63.7628151621778, -60.65306597126386]
+2025-09-24 12:32:54,487 - multi_agent_system - INFO - [MultiAgent] Iniciando analise colaborativa...
+2025-09-24 12:32:54,487 - multi_agent_system - INFO - [Analista CHARM-01] Analise: NEUTRAL (Conf: 0.4%)
+2025-09-24 12:32:54,487 - multi_agent_system - INFO - [Analista DELTA-02] Analise: PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Analista GAMMA-03] Analise: BULLISH_TARGET (Conf: 0.8%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Analista VWAP-04] Analise: NEUTRAL (Conf: 0.6%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Analista Volume-05] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Analista Price Action-06] Analise: NEUTRAL (Conf: 0.5%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Gerente de Risco-07] Analise: EXCELLENT_RR (Conf: 0.9%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Coordenador de Setups-08] Analise: COORDINATING (Conf: 0.8%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Otimizador de Estrategia-09] Analise: OPTIMIZING (Conf: 0.8%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Tomador de Decisao Final-10] Analise: DECIDING (Conf: 0.8%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [MultiAgent] Facilitando comunicacao entre agentes...
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [Coordenador] Setup identificado: SETUP3_PULLBACK_TOP (Conf: 0.9%)
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [NEUTRO] Analista CHARM: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Analista DELTA: PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [SETUP 4 - PULLBACK BOTTOM] Analista GAMMA: BULLISH_TARGET -> Oferta esgotada, BUY
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [NEUTRO] Analista VWAP: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:54,488 - multi_agent_system - INFO - [NEUTRO] Analista Volume: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [NEUTRO] Analista Price Action: NEUTRAL -> Aguardando sinal mais claro
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [HOLD CONTEXTO] Gerente de Risco: EXCELLENT_RR -> Sinal indefinido
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [SETUP 3 - PULLBACK TOP] Coordenador de Setups: SETUP3_PULLBACK_TOP -> Demanda esgotada, SELL
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [HOLD CONTEXTO] Otimizador de Estrategia: OPTIMIZING -> Sinal indefinido
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [HOLD CONTEXTO] Tomador de Decisao Final: DECIDING -> Sinal indefinido
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [6 SETUPS] SELL executado - Setup detectado com 2 votos, Forca: 1.8
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [Consenso] BUY: 1 votos (força: 0.8)
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [Consenso] SELL: 2 votos (força: 1.8)
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [Consenso] HOLD: 7 votos (força: 3.2)
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [Decisao Final] SELL - Setup: SETUP3_PULLBACK_TOP - R/R: 2.3
+2025-09-24 12:32:54,489 - multi_agent_system - INFO - [MultiAgent] Decisao final: SELL (Conf: 90.0%)
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] AGENTES DECIDEM: SELL - Setup: SETUP3_PULLBACK_TOP
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] Confianca Multi-Agente: 90.0%
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] SmartOrder Analise: Tendencia=NEUTRAL, Conf=30.0%
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO ORDENS INTELIGENTES - Conf. Final: 90.0%
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] Sinais conflitantes ou fracos - aguardar
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] PREVISAO FORTE DE BAIXA - ABRINDO 5 SELL POSITIONS!
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] INICIANDO ABERTURA DE 5 POSICOES SELL
+2025-09-24 12:32:54,491 - __main__ - INFO - [RealAgent-FBS] MOTIVO: FORTE BAIXA PREVISTA
+2025-09-24 12:32:54,492 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:54,492 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24482.10, sl=24487.10, tp=24472.10
+2025-09-24 12:32:54,492 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:54,842 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24482.10
+2025-09-24 12:32:54,842 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24487.10 | Take Profit: 24472.10
+2025-09-24 12:32:54,843 - __main__ - INFO - [RealAgent-FBS] POSICAO 1/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:55,843 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:55,843 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24482.85, sl=24487.85, tp=24472.85
+2025-09-24 12:32:55,843 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:56,196 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24482.85
+2025-09-24 12:32:56,197 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24487.85 | Take Profit: 24472.85
+2025-09-24 12:32:56,197 - __main__ - INFO - [RealAgent-FBS] POSICAO 2/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:57,197 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:57,198 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24483.60, sl=24488.60, tp=24473.60
+2025-09-24 12:32:57,198 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:57,557 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24483.60
+2025-09-24 12:32:57,557 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24488.60 | Take Profit: 24473.60
+2025-09-24 12:32:57,557 - __main__ - INFO - [RealAgent-FBS] POSICAO 3/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:58,558 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:58,558 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24483.97, sl=24488.97, tp=24473.97
+2025-09-24 12:32:58,558 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:32:58,907 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24483.97
+2025-09-24 12:32:58,907 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24488.97 | Take Profit: 24473.97
+2025-09-24 12:32:58,907 - __main__ - INFO - [RealAgent-FBS] POSICAO 4/5 ABERTA COM SUCESSO!
+2025-09-24 12:32:59,908 - __main__ - INFO - [RealAgent-FBS] SELL - SL: +5.0 | TP: -10.0
+2025-09-24 12:32:59,908 - __main__ - INFO - [RealAgent-FBS] EXECUTANDO SELL: price=24484.60, sl=24489.60, tp=24474.60
+2025-09-24 12:32:59,908 - __main__ - INFO - [RealAgent-FBS] Filling type: 0, Symbol info: 1
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] SUCESSO - ORDEM EXECUTADA: SELL 0.01 US100 @ 24484.60
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] Stop Loss: 24489.60 | Take Profit: 24474.60
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] POSICAO 5/5 ABERTA COM SUCESSO!
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] RESULTADO FINAL: 5 SUCESSOS, 0 FALHAS
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] ESTRATEGIA MULTIPLA EXECUTADA COM SUCESSO!
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] PRONTO PARA CAPTURAR TODO O MOVIMENTO SELL!
+2025-09-24 12:33:00,279 - __main__ - INFO - [RealAgent-FBS] ORDENS EXECUTADAS: SELL - Agentes Multi-Agente
+2025-09-24 12:33:00,282 - __main__ - INFO - [RealAgent-FBS] Análise multi-agente concluída - Decisão: SELL (Conf: 90.0%)

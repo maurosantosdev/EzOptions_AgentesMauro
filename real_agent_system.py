@@ -1442,9 +1442,14 @@ class RealAgentSystem(threading.Thread):
                 # Atualizar estado da conta
                 self.update_account_state()
 
-                # 🚨 STOP LOSS FORÇADO - MÁXIMA PRIORIDADE! Verificar PRIMEIRO!
+                # 🚨 STOP LOSS FORÇADO - MÁXIMA PRIORIDADE! Verificar A CADA 2 SEGUNDOS!
                 if self.check_active_stop_loss():
                     logger.error(f"[{self.name}] STOP LOSS FORÇADO aplicado - continuando monitoramento")
+
+                # VERIFICAR NOVAMENTE após 2 segundos (dupla proteção)
+                time.sleep(2)
+                if self.check_active_stop_loss():
+                    logger.error(f"[{self.name}] SEGUNDA VERIFICAÇÃO STOP LOSS")
 
                 # MONITORAMENTO GLOBAL P&L - Verificar ANTES de qualquer análise
                 if self.check_global_pnl():
