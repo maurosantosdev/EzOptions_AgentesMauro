@@ -34,7 +34,7 @@ def is_trading_hours():
     is_market_open = market_open <= current_time_ny.time() <= market_close
 
     if not is_market_open:
-        logger.info(f"🕒 MERCADO FECHADO - Horário NY: {current_time_ny.strftime('%H:%M:%S')} (Abre: 9:30, Fecha: 16:00)")
+        logger.info(f"MERCADO FECHADO - Horario NY: {current_time_ny.strftime('%H:%M:%S')} (Abre: 9:30, Fecha: 16:00)")
 
     return is_market_open
 
@@ -66,7 +66,7 @@ def emergency_stop_loss():
         try:
             # 1. PRIMEIRO: VERIFICAR SE ESTÁ NO HORÁRIO DE MERCADO
             if not is_trading_hours():
-                logger.info("💤 MERCADO FECHADO - Sistema em standby...")
+                logger.info("MERCADO FECHADO - Sistema em standby...")
                 time.sleep(60)  # Verificar a cada minuto quando fechado
                 continue
 

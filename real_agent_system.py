@@ -148,7 +148,7 @@ class RealAgentSystem(threading.Thread):
         is_market_open = market_open <= current_time_ny.time() <= market_close
 
         if not is_market_open:
-            logger.info(f"[{self.name}] 🕒 MERCADO FECHADO - Horário NY: {current_time_ny.strftime('%H:%M:%S')} (Abre: 9:30, Fecha: 16:00)")
+            logger.info(f"[{self.name}] MERCADO FECHADO - Horario NY: {current_time_ny.strftime('%H:%M:%S')} (Abre: 9:30, Fecha: 16:00)")
 
         return is_market_open
 
