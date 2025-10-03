@@ -13,6 +13,7 @@ from datetime import datetime, time as datetime_time
 import pytz
 import logging
 import numpy as np
+import pandas as pd
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,13 +33,19 @@ class SistemaMultiAtivos(threading.Thread):
             'DE30': {'magic': 234004, 'lot': 0.01}
         }
 
-        # Sistema de 14 agentes distribuídos por ativo (trabalhando simultaneamente)
-        self.agents_per_asset = 4  # 4 agentes por ativo = 16 agentes (usaremos 14)
-        self.total_agents = 14  # Total de agentes trabalhando simultaneamente
+        # Sistema de 50 agentes distribuídos por ativo (trabalhando simultaneamente)
+        self.agents_distribution = {
+            'US100': 14,  # NASDAQ - Mais agentes devido à alta volatilidade
+            'US500': 13,  # S&P 500 - Segundo mais importante
+            'US30': 12,   # Dow Jones - Menos volátil
+            'DE30': 11    # DAX - Mercado europeu
+        }
+        self.agents_per_asset = 12  # Base de agentes por ativo
+        self.total_agents = 50  # Total de agentes trabalhando simultaneamente
 
         # Configurações
         self.min_confidence = 55.0
-        self.max_positions = 10
+        self.max_positions = 20
         self.stop_loss_pct = 0.10
         self.take_profit_pct = 0.25
 
@@ -72,7 +79,7 @@ class SistemaMultiAtivos(threading.Thread):
         logger.info(f'🎯 Meta diaria: ${self.daily_pnl_target:.2f} (fecha posições)')
         logger.info(f'🛡️ Proteção de Lucro: ${self.profit_protection_level:.2f} (ativa quando lucro > $50)')
         logger.info(f'📊 Confianca mínima: {self.min_confidence}% | Max posições: {self.max_positions}')
-        logger.info(f'🤖 Total de agentes: {self.total_agents} (trabalhando simultaneamente)')
+        logger.info(f'🤖 Total de agentes: {self.total_agents} (distribuídos: US100={self.agents_distribution["US100"]}, US500={self.agents_distribution["US500"]}, US30={self.agents_distribution["US30"]}, DE30={self.agents_distribution["DE30"]})')
         logger.info('💡 Sistema continua operando mesmo após atingir limites')
         logger.info('=== SISTEMA OPERACIONAL COM PROTECAO INTELIGENTE ===')
 
@@ -111,14 +118,20 @@ class SistemaMultiAtivos(threading.Thread):
             vol = np.std(prices[-20:]) / np.mean(prices[-20:]) * 100
 
             if vol <= 0.02:  # Volatilidade mínima
-                return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': 0, 'SELL': 0, 'HOLD': 14}}
+                return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': 0, 'SELL': 0, 'HOLD': self.total_agents}}
 
             # Sistema de 14 agentes trabalhando simultaneamente
             agent_decisions = []
             agent_confidences = []
 
-            # Distribuir agentes entre os ativos (US100: 4, US500: 3, US30: 3, DE30: 4)
-            agents_for_this_asset = 4 if simbolo in ['US100', 'DE30'] else 3
+            # Distribuição inteligente de agentes (total: 50 agentes)
+            agents_distribution = {
+                'US100': 14,  # NASDAQ - Mais agentes devido à alta volatilidade
+                'US500': 13,  # S&P 500 - Segundo mais importante
+                'US30': 12,   # Dow Jones - Menos volátil
+                'DE30': 11    # DAX - Mercado europeu
+            }
+            agents_for_this_asset = agents_distribution.get(simbolo, 12)
 
             for agent_id in range(agents_for_this_asset):
                 # 14 estratégias diferentes para os agentes
@@ -170,8 +183,163 @@ class SistemaMultiAtivos(threading.Thread):
                         agent_decisions.append('HOLD')
                         agent_confidences.append(40)
 
-            # Completar com agentes adicionais se necessário (para manter 14 agentes totais)
-            while len(agent_decisions) < self.total_agents:
+                elif agent_id == 4:  # Agente de Volume Price Analysis
+                    volume_surge = rates['tick_volume'][-1] > np.mean(rates['tick_volume'][-10:]) * 1.8
+                    price_momentum = (current_price - prices[-5]) / prices[-5] * 100
+                    if volume_surge and price_momentum > 0.05:
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(70)
+                    elif volume_surge and price_momentum < -0.05:
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(70)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(30)
+
+                elif agent_id == 5:  # Agente de médias móveis múltiplas
+                    sma5 = np.mean(prices[-5:])
+                    sma10 = np.mean(prices[-10:])
+                    sma20 = np.mean(prices[-20:])
+                    if sma5 > sma10 > sma20 and current_price > sma5:
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(65)
+                    elif sma5 < sma10 < sma20 and current_price < sma5:
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(65)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(35)
+
+                elif agent_id == 6:  # Agente de padrões candlestick
+                    # Doji pattern
+                    body_size = abs(current_price - prices[-1]) / prices[-1] * 100
+                    total_range = (np.max([current_price, prices[-1]]) - np.min([current_price, prices[-1]])) / prices[-1] * 100
+                    if body_size < 0.1 and total_range > 0.2:
+                        # Indecision - avoid trading
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(20)
+                    elif body_size > 0.3:  # Strong candle
+                        direction = 'BUY' if current_price > prices[-1] else 'SELL'
+                        agent_decisions.append(direction)
+                        agent_confidences.append(60)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(40)
+
+                elif agent_id == 7:  # Agente de Análise de Tendência Avançada
+                    # Combinação de múltiplos timeframes
+                    short_trend = np.mean(prices[-5:]) > np.mean(prices[-10:])
+                    medium_trend = np.mean(prices[-10:]) > np.mean(prices[-20:])
+                    long_trend = np.mean(prices[-20:]) > np.mean(prices[-50:]) if len(prices) >= 50 else True
+
+                    trend_strength = sum([short_trend, medium_trend, long_trend])
+                    if trend_strength >= 2 and current_price > np.mean(prices[-10:]):
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(60 + trend_strength * 5)
+                    elif trend_strength <= 1 and current_price < np.mean(prices[-10:]):
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(60 + (3 - trend_strength) * 5)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(35)
+
+                elif agent_id == 8:  # Agente de Order Flow
+                    # Análise baseada em padrões de preço e volume
+                    price_acceleration = (prices[-1] - prices[-3]) - (prices[-3] - prices[-5])
+                    volume_trend = rates['tick_volume'][-1] > np.mean(rates['tick_volume'][-5:])
+
+                    if price_acceleration > 0 and volume_trend:
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(65)
+                    elif price_acceleration < 0 and volume_trend:
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(65)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(30)
+
+                elif agent_id == 9:  # Agente de Market Profile
+                    # Análise de distribuição de preços
+                    recent_prices = prices[-20:]
+                    price_range = np.max(recent_prices) - np.min(recent_prices)
+                    current_position = (current_price - np.min(recent_prices)) / price_range
+
+                    if current_position > 0.7:  # No terço superior
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(55)
+                    elif current_position < 0.3:  # No terço inferior
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(55)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(35)
+
+                elif agent_id == 10:  # Agente de Seasonal Patterns
+                    # Análise baseada no dia da semana e hora
+                    current_hour = datetime.now(pytz.timezone('America/New_York')).hour
+                    current_weekday = datetime.now(pytz.timezone('America/New_York')).weekday()
+
+                    # Padrões típicos do mercado
+                    if current_weekday == 0 and current_hour < 12:  # Segunda de manhã
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(50)
+                    elif current_weekday == 4 and current_hour > 14:  # Sexta à tarde
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(50)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(30)
+
+                elif agent_id == 11:  # Agente de Divergência
+                    # Detectar divergências entre preço e indicadores
+                    price_change = (current_price - prices[-10]) / prices[-10] * 100
+                    volume_avg = np.mean(rates['tick_volume'][-10:])
+
+                    if price_change > 0.5 and rates['tick_volume'][-1] < volume_avg * 0.8:
+                        # Divergência baixista
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(60)
+                    elif price_change < -0.5 and rates['tick_volume'][-1] < volume_avg * 0.8:
+                        # Divergência altista
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(60)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(35)
+
+                elif agent_id == 12:  # Agente de Elliott Wave Básico
+                    # Identificação simples de ondas
+                    recent_highs = [prices[i] for i in range(1, len(prices)-1) if prices[i] > prices[i-1] and prices[i] > prices[i+1]]
+                    recent_lows = [prices[i] for i in range(1, len(prices)-1) if prices[i] < prices[i-1] and prices[i] < prices[i+1]]
+
+                    if len(recent_highs) >= 2 and current_price > recent_highs[-1]:
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(55)
+                    elif len(recent_lows) >= 2 and current_price < recent_lows[-1]:
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(55)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(35)
+
+                elif agent_id == 13:  # Agente de Machine Learning Básico
+                    # Simples análise estatística
+                    returns = np.diff(prices[-20:]) / prices[-20:-1] * 100
+                    volatility = np.std(returns)
+                    momentum = np.mean(returns[-5:])
+
+                    if momentum > volatility and current_price > np.mean(prices[-10:]):
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(55)
+                    elif momentum < -volatility and current_price < np.mean(prices[-10:]):
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(55)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(30)
+
+            # Completar com agentes adicionais se necessário (estratégias extras para 28 agentes)
+            while len(agent_decisions) < agents_for_this_asset:
                 # Agentes extras com estratégias variadas
                 extra_agent_id = len(agent_decisions) % 5
                 if extra_agent_id == 0:  # RSI básico
@@ -210,15 +378,84 @@ class SistemaMultiAtivos(threading.Thread):
                         agent_decisions.append('HOLD')
                         agent_confidences.append(35)
 
-                else:  # Volume/Price
+                elif extra_agent_id == 3:  # Fibonacci Retracement
+                    recent_high = np.max(prices[-20:])
+                    recent_low = np.min(prices[-20:])
+                    fib_levels = [0.236, 0.382, 0.5, 0.618, 0.786]
+                    fib_range = recent_high - recent_low
+
+                    for level in fib_levels:
+                        fib_level = recent_high - (fib_range * level)
+                        if abs(current_price - fib_level) / current_price < 0.002:  # Dentro de 0.2%
+                            if current_price > prices[-1]:
+                                agent_decisions.append('BUY')
+                                agent_confidences.append(55)
+                                break
+                            else:
+                                agent_decisions.append('SELL')
+                                agent_confidences.append(55)
+                                break
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(30)
+
+                elif extra_agent_id == 4:  # Market Sentiment (baseado em força relativa)
+                    # Comparar performance relativa com outros ativos
+                    sentiment_score = 0
+                    for other_simbolo in self.ativos:
+                        if other_simbolo != simbolo:
+                            try:
+                                other_rates = mt5.copy_rates_from_pos(other_simbolo, mt5.TIMEFRAME_M1, 0, 10)
+                                if other_rates is not None:
+                                    other_prices = other_rates['close']
+                                    if len(other_prices) >= 5:
+                                        other_return = (other_prices[-1] - other_prices[-5]) / other_prices[-5]
+                                        current_return = (current_price - prices[-5]) / prices[-5]
+                                        if current_return > other_return * 1.5:
+                                            sentiment_score += 1
+                                        elif current_return < other_return * 1.5:
+                                            sentiment_score -= 1
+                            except:
+                                continue
+
+                    if sentiment_score > 1:
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(50 + sentiment_score * 5)
+                    elif sentiment_score < -1:
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(50 + abs(sentiment_score) * 5)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(35)
+
+                elif extra_agent_id == 5:  # Volatility Breakout System
+                    # Bollinger Bands simples
+                    sma = np.mean(prices[-20:])
+                    std = np.std(prices[-20:])
+                    upper_band = sma + (std * 2)
+                    lower_band = sma - (std * 2)
+
+                    if current_price > upper_band and current_price > prices[-1]:
+                        agent_decisions.append('BUY')
+                        agent_confidences.append(60)
+                    elif current_price < lower_band and current_price < prices[-1]:
+                        agent_decisions.append('SELL')
+                        agent_confidences.append(60)
+                    else:
+                        agent_decisions.append('HOLD')
+                        agent_confidences.append(30)
+
+                else:  # Volume/Price (estratégia melhorada)
                     avg_volume = np.mean(rates['tick_volume'][-10:])
                     current_volume = rates['tick_volume'][-1]
-                    if current_volume > avg_volume * 1.5 and current_price > prices[-1]:
+                    volume_multiplier = current_volume / avg_volume
+
+                    if volume_multiplier > 2.0 and current_price > prices[-1]:
                         agent_decisions.append('BUY')
-                        agent_confidences.append(70)
-                    elif current_volume > avg_volume * 1.5 and current_price < prices[-1]:
+                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10, 85))
+                    elif volume_multiplier > 2.0 and current_price < prices[-1]:
                         agent_decisions.append('SELL')
-                        agent_confidences.append(70)
+                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10, 85))
                     else:
                         agent_decisions.append('HOLD')
                         agent_confidences.append(35)
@@ -228,23 +465,74 @@ class SistemaMultiAtivos(threading.Thread):
             sell_votes = agent_decisions.count('SELL')
             hold_votes = agent_decisions.count('HOLD')
 
-            # Calcular confiança coletiva baseada nos votos e confiança individual
-            total_confidence = sum(agent_confidences)
-            avg_confidence = total_confidence / len(agent_confidences)
+            # Sistema avançado de consenso com pesos por confiança
+            buy_weighted = sum(conf for decision, conf in zip(agent_decisions, agent_confidences) if decision == 'BUY')
+            sell_weighted = sum(conf for decision, conf in zip(agent_decisions, agent_confidences) if decision == 'SELL')
+            hold_weighted = sum(conf for decision, conf in zip(agent_decisions, agent_confidences) if decision == 'HOLD')
 
-            # Decisão coletiva com threshold mais alto
-            if buy_votes > sell_votes and buy_votes >= max(2, len(agent_decisions) // 3):
-                confidence = min(avg_confidence + (buy_votes * 5), 95)
-                return {'decision': 'BUY', 'confidence': confidence, 'agent_votes': {'BUY': buy_votes, 'SELL': sell_votes, 'HOLD': hold_votes}}
-            elif sell_votes > buy_votes and sell_votes >= max(2, len(agent_decisions) // 3):
-                confidence = min(avg_confidence + (sell_votes * 5), 95)
-                return {'decision': 'SELL', 'confidence': confidence, 'agent_votes': {'BUY': buy_votes, 'SELL': sell_votes, 'HOLD': hold_votes}}
+            total_weighted = buy_weighted + sell_weighted + hold_weighted
+
+            if total_weighted == 0:
+                return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': buy_votes, 'SELL': sell_votes, 'HOLD': hold_votes}}
+
+            buy_pct = buy_weighted / total_weighted * 100
+            sell_pct = sell_weighted / total_weighted * 100
+
+            # Sistema de comunicação cruzada - considerar correlação entre ativos
+            cross_asset_signal = self.get_cross_asset_signal(simbolo, prices)
+
+            # Decisão coletiva aprimorada
+            min_consensus_threshold = max(3, len(agent_decisions) // 4)  # Pelo menos 3 votos ou 25% dos agentes
+
+            if buy_votes >= min_consensus_threshold and buy_pct > 45:
+                # Aplicar sinal cruzado como bonus/malus
+                final_confidence = min(buy_pct + (buy_votes * 3) + cross_asset_signal, 95)
+                return {'decision': 'BUY', 'confidence': final_confidence, 'agent_votes': {'BUY': buy_votes, 'SELL': sell_votes, 'HOLD': hold_votes}}
+            elif sell_votes >= min_consensus_threshold and sell_pct > 45:
+                final_confidence = min(sell_pct + (sell_votes * 3) + cross_asset_signal, 95)
+                return {'decision': 'SELL', 'confidence': final_confidence, 'agent_votes': {'BUY': buy_votes, 'SELL': sell_votes, 'HOLD': hold_votes}}
 
             return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': buy_votes, 'SELL': sell_votes, 'HOLD': hold_votes}}
 
         except Exception as e:
             logger.error(f'Erro na análise de {simbolo}: {e}')
-            return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': 0, 'SELL': 0, 'HOLD': 14}}
+            return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': 0, 'SELL': 0, 'HOLD': self.total_agents}}
+
+    def get_cross_asset_signal(self, simbolo, prices):
+        """Calcula sinal baseado na correlação com outros ativos"""
+        try:
+            signal = 0
+
+            # Verificar correlação com outros ativos
+            for other_simbolo in self.ativos:
+                if other_simbolo != simbolo:
+                    try:
+                        other_rates = mt5.copy_rates_from_pos(other_simbolo, mt5.TIMEFRAME_M1, 0, 20)
+                        if other_rates is not None and len(other_rates) >= 10:
+                            other_prices = other_rates['close']
+
+                            # Calcular correlação simples
+                            if len(prices) >= 10 and len(other_prices) >= 10:
+                                correlation = np.corrcoef(prices[-10:], other_prices[-10:])[0, 1]
+
+                                # Se correlação alta e movimento direcional
+                                current_return = (prices[-1] - prices[-5]) / prices[-5]
+                                other_return = (other_prices[-1] - other_prices[-5]) / other_prices[-5]
+
+                                if abs(correlation) > 0.7:
+                                    if current_return > 0 and other_return > 0:
+                                        signal += 5  # Bonus para movimento direcional
+                                    elif current_return < 0 and other_return < 0:
+                                        signal += 5
+                                    else:
+                                        signal -= 3  # Penalidade para divergência
+                    except:
+                        continue
+
+            return min(signal, 10)  # Limitar impacto do sinal cruzado
+
+        except:
+            return 0
 
     def calculate_rsi(self, prices, period=14):
         """Calcula RSI simples"""
