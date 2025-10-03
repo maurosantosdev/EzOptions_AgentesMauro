@@ -691,6 +691,103 @@ def main():
     else:
         st.warning("⚠️ Dados dos agentes não disponíveis no momento")
 
+    # Seção de Notícias em Tempo Real
+    st.subheader("📰 Análise de Notícias Econômicas")
+
+    # Simular dados de notícias (em produção real, viria do agente de notícias)
+    news_data = {
+        'noticias_positivas': [
+            'Dados de emprego acima do esperado',
+            'PIB trimestral supera expectativas',
+            'Redução da taxa de juros anunciada'
+        ],
+        'noticias_negativas': [
+            'Inflação acima do esperado',
+            'Tensões geopolíticas aumentam'
+        ],
+        'sentimento_geral': 'NEUTRAL',
+        'impacto_mercado': 'Médio',
+        'horario_ultima_noticia': datetime.now() - timedelta(minutes=15)
+    }
+
+    # Cards de notícias
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("**🟢 Notícias Positivas**")
+        for noticia in news_data['noticias_positivas']:
+            st.success(f"• {noticia}")
+
+    with col2:
+        st.markdown("**🔴 Notícias Negativas**")
+        for noticia in news_data['noticias_negativas']:
+            st.error(f"• {noticia}")
+
+    with col3:
+        st.markdown("**📊 Análise de Sentimento**")
+
+        # Indicador de sentimento
+        sentimento = news_data['sentimento_geral']
+        if sentimento == 'BULLISH':
+            st.success("🟢 SENTIMENTO POSITIVO")
+            st.metric("Impacto no Mercado", "ALTA", delta="+15%")
+        elif sentimento == 'BEARISH':
+            st.error("🔴 SENTIMENTO NEGATIVO")
+            st.metric("Impacto no Mercado", "BAIXA", delta="-12%")
+        else:
+            st.warning("🟡 SENTIMENTO NEUTRO")
+            st.metric("Impacto no Mercado", "MÉDIO", delta="0%")
+
+        st.caption(f"Última atualização: {news_data['horario_ultima_noticia'].strftime('%H:%M:%S')}")
+
+    # Expander com detalhes das notícias
+    with st.expander("📋 Detalhes das Notícias e Impacto"):
+        st.markdown("**🎯 Interpretação para Trading:**")
+        st.info("💡 O sentimento neutro atual indica estabilidade. Monitore para mudanças.")
+
+        st.markdown("**📈 Recomendações:**")
+        st.write("• Mantenha posições existentes")
+        st.write("• Aguarde sinais mais claros")
+        st.write("• Reduza exposição em alta volatilidade")
+
+    # Seção de Trailing Stop
+    st.subheader("🎯 Status do Trailing Stop")
+
+    # Simular dados de trailing stop
+    trailing_data = {
+        'posicoes_ativas': 2,
+        'trailing_ativos': 1,
+        'lucro_protegido': 45.50,
+        'distancia_media': 35,
+        'ultima_modificacao': datetime.now() - timedelta(minutes=8)
+    }
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("📊 Posições Ativas", trailing_data['posicoes_ativas'])
+    with col2:
+        st.metric("🎯 Trailing Ativos", trailing_data['trailing_ativos'])
+    with col3:
+        st.metric("💰 Lucro Protegido", f"${trailing_data['lucro_protegido']:.2f}")
+    with col4:
+        st.metric("📏 Distância Média", f"{trailing_data['distancia_media']} pts")
+
+    st.caption(f"Última modificação: {trailing_data['ultima_modificacao'].strftime('%H:%M:%S')}")
+
+    with st.expander("📋 Detalhes do Trailing Stop"):
+        st.markdown("**🎯 Como Funciona:**")
+        st.info("💡 O trailing stop se ajusta automaticamente conforme o lucro cresce, protegendo seus ganhos.")
+
+        st.markdown("**📊 Níveis de Trailing:**")
+        st.write("• **Lucro < 50 pts**: Sem trailing")
+        st.write("• **50-100 pts**: Trailing de 30 pts")
+        st.write("• **100-200 pts**: Trailing de 50 pts")
+        st.write("• **200-300 pts**: Trailing de 80 pts")
+        st.write("• **> 300 pts**: Trailing de 120 pts")
+
+    st.markdown("---")
+
     # Tipos de Ordens - Confiança Individual
     st.subheader("📋 Confiança por Tipo de Ordem")
 

@@ -227,25 +227,49 @@ class AgentSystem(threading.Thread):
             print(f"[{self.name}] Failed to cancel pending order #{ticket}.")
 
     def close_position(self, position):
+        # Lista de filling modes para tentar em ordem de preferência
+        filling_modes = [
+            mt5.ORDER_FILLING_IOC,      # Immediate or cancel
+            mt5.ORDER_FILLING_FOK,      # Fill or kill
+            mt5.ORDER_FILLING_BOC,      # Better of cancel (MT5 only)
+            mt5.ORDER_FILLING_RETURN,   # Return on failure
+        ]
+        
         with mt5_lock:
             price = mt5.symbol_info_tick(self.symbol).bid if position.type == 0 else mt5.symbol_info_tick(self.symbol).ask
-        request = {
-            "action": mt5.TRADE_ACTION_DEAL, "symbol": self.symbol, "volume": position.volume,
-            "type": mt5.ORDER_TYPE_SELL if position.type == 0 else mt5.ORDER_TYPE_BUY,
-            "position": position.ticket, "price": price, "deviation": 20, "magic": self.magic_number,
-            "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC,
-        }
-        with mt5_lock:
-            result = mt5.order_send(request)
-        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
-            print(f"[{self.name}] Failed to close position #{position.ticket}.")
+        
+        for filling_mode in filling_modes:
+            request = {
+                "action": mt5.TRADE_ACTION_DEAL, "symbol": self.symbol, "volume": position.volume,
+                "type": mt5.ORDER_TYPE_SELL if position.type == 0 else mt5.ORDER_TYPE_BUY,
+                "position": position.ticket, "price": price, "deviation": 20, "magic": self.magic_number,
+                "type_time": mt5.ORDER_TIME_GTC, "type_filling": filling_mode,
+            }
+            
+            with mt5_lock:
+                result = mt5.order_send(request)
+            
+            if result is not None and result.retcode == mt5.TRADE_RETCODE_DONE:
+                print(f"[{self.name}] Position #{position.ticket} closed successfully with filling mode {filling_mode}.")
+                return True
+            elif result is not None and result.retcode == 10030:  # Unsupported filling mode
+                print(f"[{self.name}] Filling mode {filling_mode} not supported for position #{position.ticket}, trying next...")
+                continue
+            else:
+                print(f"[{self.name}] Failed to close position #{position.ticket} with filling mode {filling_mode}, trying next...")
+                continue
+        
+        print(f"[{self.name}] Failed to close position #{position.ticket} with all filling modes.")
+        return False
 
     def close_all_positions(self):
         with mt5_lock:
             open_positions = mt5.positions_get(symbol=self.symbol, magic=self.magic_number)
         if open_positions:
             for position in open_positions:
-                self.close_position(position)
+                success = self.close_position(position)
+                if not success:
+                    print(f"[{self.name}] Failed to close position #{position.ticket} in bulk close operation.")
 
     def monitor_and_manage_positions(self):
         with mt5_lock:
@@ -256,7 +280,11 @@ class AgentSystem(threading.Thread):
                     self.execute_loss_recovery(position)
 
     def execute_loss_recovery(self, position):
-        self.close_position(position)
+        success = self.close_position(position)
+        if not success:
+            print(f"[{self.name}] Loss recovery: Failed to close position #{position.ticket}, skipping new order placement.")
+            return
+            
         with mt5_lock:
             tick = mt5.symbol_info_tick(self.symbol)
         if not tick: return
@@ -289,7 +317,11 @@ class AgentSystem(threading.Thread):
             SetupType.PULLBACK_TOP: "SELL_LIMIT",
             SetupType.PULLBACK_BOTTOM: "BUY_LIMIT",
             SetupType.CONSOLIDATED_MARKET: "BUY_LIMIT",  # Range trading
-            SetupType.GAMMA_NEGATIVE_PROTECTION: "BUY_STOP"
+            SetupType.GAMMA_NEGATIVE_PROTECTION: "BUY_STOP",
+            SetupType.BUY_STOP_STRONG_MARKET: "BUY_STOP",
+            SetupType.BUY_LIMIT_STRONG_MARKET: "BUY_LIMIT",
+            SetupType.SELL_STOP_STRONG_MARKET: "SELL_STOP",
+            SetupType.SELL_LIMIT_STRONG_MARKET: "SELL_LIMIT"
         }
         return order_map.get(setup_type)
 
@@ -301,7 +333,11 @@ class AgentSystem(threading.Thread):
             SetupType.PULLBACK_TOP: "SELL",
             SetupType.PULLBACK_BOTTOM: "BUY",
             SetupType.CONSOLIDATED_MARKET: "BUY",  # Neutral/range trading
-            SetupType.GAMMA_NEGATIVE_PROTECTION: "BUY"
+            SetupType.GAMMA_NEGATIVE_PROTECTION: "BUY",
+            SetupType.BUY_STOP_STRONG_MARKET: "BUY",
+            SetupType.BUY_LIMIT_STRONG_MARKET: "BUY",
+            SetupType.SELL_STOP_STRONG_MARKET: "SELL",
+            SetupType.SELL_LIMIT_STRONG_MARKET: "SELL"
         }
         return action_map.get(setup_type, "BUY")
 

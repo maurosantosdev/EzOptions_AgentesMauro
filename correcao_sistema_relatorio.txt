@@ -1,0 +1,24 @@
+RELATÓRIO DE CORREÇÕES DO SISTEMA DE AGENTES
+==================================================
+Data/Hora: 2025-09-30T11:35:58.638185
+
+CORREÇÕES APLICADAS:
+- ✅ STOP LOSS RÁPIDO: $0.25 → $1.50
+- ✅ Confiança mínima: 70% → 75%
+- ✅ Máximo posições: 10 → 8 (segurança)
+- ✅ Threshold lucro escalado: $5.00 → $3.00
+- ✅ Risco por trade: 1.5% → 1.0%
+- ✅ Trailing Stop: $0.90 (otimizado)
+
+PROBLEMAS CORRIGIDOS:
+- ❌ STOP LOSS excessivamente restritivo ($0.25)
+- ❌ Fechamento prematuro de posições boas
+- ❌ Falta de tempo para recuperação de mercado
+- ❌ Perdas desnecessárias por micromanagement
+
+RECOMENDAÇÕES:
+- 📊 MONITORAR POSIÇÕES ATIVAS
+- 📈 VERIFICAR COMUNICAÇÃO ENTRE AGENTES
+- 💼 GARANTIR CONEXÃO ESTÁVEL COM MT5
+- ⏰ EXECUTAR SYSTEMATIC REVIEW DIÁRIO
+- 🔄 REINICIAR SISTEMA APÓS CORREÇÕES
