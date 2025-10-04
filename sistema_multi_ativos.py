@@ -26,6 +26,24 @@ class SistemaMultiAtivos(threading.Thread):
 
         # Multi-ativos com 14 agentes trabalhando simultaneamente
         self.ativos = ['US100', 'US500', 'US30', 'DE30']
+
+        # Spreads base para cada ativo
+        self.spreads_base = {
+            'US100': 40,  # NASDAQ
+            'US500': 60,  # S&P 500
+            'US30': 50,   # Dow Jones
+            'DE30': 45    # DAX
+        }
+
+        # Sistema de ajuste automático de spread por dia da semana
+        self.spread_adjustments = {
+            0: 1,  # Segunda: +1
+            1: 2,  # Terça: +2
+            2: 1,  # Quarta: +1
+            3: 2,  # Quinta: +2
+            4: 2   # Sexta: +2
+        }
+
         self.ativos_info = {
             'US100': {'magic': 234001, 'lot': 0.01},
             'US500': {'magic': 234002, 'lot': 0.01},
@@ -56,7 +74,7 @@ class SistemaMultiAtivos(threading.Thread):
 
         # Controle de lucro/prejuízo diário (trader experiente)
         self.daily_pnl_target = 150.0       # Meta de lucro diário ($150) - fecha posições
-        self.profit_protection_level = 80.0 # Nível de proteção de lucro ($80 positivo)
+        self.profit_protection_level = 80.0 # Nível de proteção de lucro ($80 positivo) - FECHA POSIÇÕES
         self.daily_pnl = 0.0                # P&L acumulado do dia
         self.reset_time = None              # Controle de reset diário
         self.positions_when_hit_limit = []  # Salvar posições quando bater limite
@@ -77,7 +95,7 @@ class SistemaMultiAtivos(threading.Thread):
             logger.info(f'  {simbolo}: Magic {info["magic"]} | Lote: {info["lot"]}')
 
         logger.info(f'🎯 Meta diaria: ${self.daily_pnl_target:.2f} (fecha posições)')
-        logger.info(f'🛡️ Proteção de Lucro: ${self.profit_protection_level:.2f} (ativa quando lucro > $50)')
+        logger.info(f'🛡️ Proteção de Lucro: ${self.profit_protection_level:.2f} (FECHA POSIÇÕES quando lucro cai abaixo)')
         logger.info(f'📊 Confianca mínima: {self.min_confidence}% | Max posições: {self.max_positions}')
         logger.info(f'🤖 Total de agentes: {self.total_agents} (distribuídos: US100={self.agents_distribution["US100"]}, US500={self.agents_distribution["US500"]}, US30={self.agents_distribution["US30"]}, DE30={self.agents_distribution["DE30"]})')
         logger.info('💡 Sistema continua operando mesmo após atingir limites')
@@ -97,6 +115,19 @@ class SistemaMultiAtivos(threading.Thread):
         else:
             logger.error('Falha MT5')
 
+    def get_dynamic_spread(self, simbolo):
+        """Calcula spread dinâmico baseado no dia da semana"""
+        current_weekday = datetime.now(pytz.timezone('America/New_York')).weekday()
+        base_spread = self.spreads_base.get(simbolo, 50)
+        adjustment = self.spread_adjustments.get(current_weekday, 0)
+
+        dynamic_spread = base_spread + adjustment
+
+        # Log do spread atual para monitoramento
+        logger.info(f'📊 {simbolo} - Spread Base: {base_spread} | Ajuste Hoje: +{adjustment} | Spread Dinâmico: {dynamic_spread}')
+
+        return dynamic_spread
+
     def is_trading_hours(self):
         now = datetime.now(pytz.timezone('America/New_York'))
         if not (0 <= now.weekday() <= 4):
@@ -114,10 +145,14 @@ class SistemaMultiAtivos(threading.Thread):
             prices = rates['close']
             current_price = prices[-1]
 
-            # Volatilidade
+            # Volatilidade com spread dinâmico
             vol = np.std(prices[-20:]) / np.mean(prices[-20:]) * 100
+            dynamic_spread = self.get_dynamic_spread(simbolo)
 
-            if vol <= 0.02:  # Volatilidade mínima
+            # Converter spread dinâmico para threshold de volatilidade (spread/10000 para normalizar)
+            min_vol_threshold = dynamic_spread / 10000.0
+
+            if vol <= min_vol_threshold:  # Volatilidade mínima baseada no spread dinâmico
                 return {'decision': 'HOLD', 'confidence': 0, 'agent_votes': {'BUY': 0, 'SELL': 0, 'HOLD': self.total_agents}}
 
             # Sistema de 14 agentes trabalhando simultaneamente
@@ -161,11 +196,17 @@ class SistemaMultiAtivos(threading.Thread):
                         agent_decisions.append('HOLD')
                         agent_confidences.append(30)
 
-                elif agent_id == 2:  # Agente de volatilidade/breakout
-                    if vol > 0.08:
+                elif agent_id == 2:  # Agente de volatilidade/breakout com spread dinâmico
+                    dynamic_spread = self.get_dynamic_spread(simbolo)
+                    # Usar spread dinâmico como threshold adicional (convertido para volatilidade)
+                    spread_vol_threshold = dynamic_spread / 10000.0
+
+                    if vol > max(0.08, spread_vol_threshold * 2):  # Combina threshold fixo com spread dinâmico
                         direction = 'BUY' if current_price > prices[-1] else 'SELL'
                         agent_decisions.append(direction)
-                        agent_confidences.append(min(60 + vol * 2, 85))
+                        # Confiança baseada na volatilidade relativa ao spread dinâmico
+                        vol_multiplier = vol / max(0.08, spread_vol_threshold * 2)
+                        agent_confidences.append(min(60 + (vol_multiplier * 15), 90))
                     else:
                         agent_decisions.append('HOLD')
                         agent_confidences.append(25)
@@ -445,17 +486,25 @@ class SistemaMultiAtivos(threading.Thread):
                         agent_decisions.append('HOLD')
                         agent_confidences.append(30)
 
-                else:  # Volume/Price (estratégia melhorada)
+                else:  # Volume/Price (estratégia melhorada com spread dinâmico)
                     avg_volume = np.mean(rates['tick_volume'][-10:])
                     current_volume = rates['tick_volume'][-1]
                     volume_multiplier = current_volume / avg_volume
 
-                    if volume_multiplier > 2.0 and current_price > prices[-1]:
+                    # Ajustar threshold baseado no spread dinâmico
+                    dynamic_spread = self.get_dynamic_spread(simbolo)
+                    spread_adjustment = dynamic_spread / 100.0  # Convertendo para ajuste de volume
+                    volume_threshold = max(2.0, 2.0 - spread_adjustment)  # Spread maior = threshold menor
+
+                    if volume_multiplier > volume_threshold and current_price > prices[-1]:
                         agent_decisions.append('BUY')
-                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10, 85))
-                    elif volume_multiplier > 2.0 and current_price < prices[-1]:
+                        # Confiança ajustada pelo spread dinâmico
+                        spread_bonus = min(spread_adjustment * 5, 10)
+                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10 + spread_bonus, 90))
+                    elif volume_multiplier > volume_threshold and current_price < prices[-1]:
                         agent_decisions.append('SELL')
-                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10, 85))
+                        spread_bonus = min(spread_adjustment * 5, 10)
+                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10 + spread_bonus, 90))
                     else:
                         agent_decisions.append('HOLD')
                         agent_confidences.append(35)
@@ -624,21 +673,25 @@ class SistemaMultiAtivos(threading.Thread):
             logger.info('✅ Sistema continua operando normalmente (pode abrir novas posições)')
 
         # Sistema de proteção de lucro positivo (trailing stop em lucro)
-        elif self.peak_pnl_today > self.profit_protection_level:
-            # Ativar proteção quando lucro ultrapassar $50
-            if not self.trailing_stop_active:
-                self.trailing_stop_active = True
-                self.trailing_stop_level = self.profit_protection_level
-                logger.info(f'🛡️ PROTEÇÃO DE LUCRO ATIVADA: Lucro atual ${self.daily_pnl:.2f} > ${self.profit_protection_level:.2f}')
-                logger.info(f'📈 Sistema protegerá lucro mínimo de ${self.profit_protection_level:.2f}')
+        elif self.peak_pnl_today >= 50.0:  # Ativar proteção quando atingir $50 de lucro
+            # Calcular nível de proteção baseado no pico do dia
+            if self.peak_pnl_today >= 100.0:
+                protection_level = self.peak_pnl_today * 0.8  # Protege 80% do lucro quando >= $100
+            elif self.peak_pnl_today >= 80.0:
+                protection_level = self.peak_pnl_today * 0.75  # Protege 75% do lucro quando >= $80
+            else:
+                protection_level = self.peak_pnl_today * 0.7   # Protege 70% do lucro quando >= $50
 
-            # Se o lucro caiu abaixo do nível de proteção, fechar posições
-            if self.daily_pnl <= self.trailing_stop_level:
-                logger.info(f'🛑 PROTEÇÃO DE LUCRO EXECUTADA: ${self.daily_pnl:.2f} <= ${self.trailing_stop_level:.2f}')
-                logger.info(f'💰 Protegendo lucro - Pico do dia foi: ${self.peak_pnl_today:.2f}')
+            # Se o lucro caiu abaixo do nível de proteção, FECHAR POSIÇÕES IMEDIATAMENTE
+            if self.daily_pnl <= protection_level:
+                logger.info(f'🛑 PROTEÇÃO DE LUCRO EXECUTADA: ${self.daily_pnl:.2f} <= ${protection_level:.2f}')
+                logger.info(f'💰 PROTEGENDO LUCRO - Pico do dia foi: ${self.peak_pnl_today:.2f}')
+                logger.info(f'🛡️ Nível de proteção: ${protection_level:.2f} ({protection_level/self.peak_pnl_today*100:.1f}% do pico)')
                 self.close_all_positions("PROTECAO_LUCRO")
                 self.limit_hit_today = True
                 logger.info('✅ Sistema continua operando normalmente (pode abrir novas posições)')
+            else:
+                logger.info(f'🛡️ PROTEÇÃO ATIVA: Lucro ${self.daily_pnl:.2f} | Protegendo ${protection_level:.2f} | Pico: ${self.peak_pnl_today:.2f}')
 
         return "NORMAL"
 
@@ -678,8 +731,43 @@ class SistemaMultiAtivos(threading.Thread):
 
     def update_daily_pnl(self, pnl_change):
         """Atualiza P&L diário"""
+        old_pnl = self.daily_pnl
         self.daily_pnl += pnl_change
-        logger.info(f'💰 P&L Diário Atualizado: ${self.daily_pnl:.2f}')
+
+        # Verificar proteção de lucro sempre que P&L for atualizado
+        if self.peak_pnl_today >= 50.0 and self.daily_pnl <= self.profit_protection_level:
+            logger.warning(f'🚨 PROTEÇÃO DE LUCRO ATIVADA VIA UPDATE: ${self.daily_pnl:.2f} <= ${self.profit_protection_level:.2f}')
+            logger.warning(f'💰 Protegendo lucro - Pico do dia foi: ${self.peak_pnl_today:.2f}')
+            self.close_all_positions("PROTECAO_LUCRO_UPDATE")
+            self.limit_hit_today = True
+
+        logger.info(f'💰 P&L Diário Atualizado: ${old_pnl:.2f} -> ${self.daily_pnl:.2f}')
+
+    def check_profit_protection_real_time(self):
+        """Verificação em tempo real da proteção de lucro - chamada frequente"""
+        try:
+            if self.peak_pnl_today >= 50.0:
+                # Calcular nível de proteção baseado no pico do dia
+                if self.peak_pnl_today >= 100.0:
+                    protection_level = self.peak_pnl_today * 0.8  # Protege 80% do lucro quando >= $100
+                elif self.peak_pnl_today >= 80.0:
+                    protection_level = self.peak_pnl_today * 0.75  # Protege 75% do lucro quando >= $80
+                else:
+                    protection_level = self.peak_pnl_today * 0.7   # Protege 70% do lucro quando >= $50
+
+                # Se o lucro caiu abaixo do nível de proteção, FECHAR POSIÇÕES IMEDIATAMENTE
+                if self.daily_pnl <= protection_level:
+                    logger.warning(f'🚨 PROTEÇÃO DE LUCRO REAL-TIME: ${self.daily_pnl:.2f} <= ${protection_level:.2f}')
+                    logger.warning(f'💰 PROTEGENDO LUCRO - Pico do dia foi: ${self.peak_pnl_today:.2f}')
+                    self.close_all_positions("PROTECAO_LUCRO_REALTIME")
+                    self.limit_hit_today = True
+                    return True  # Indica que proteção foi executada
+
+            return False  # Indica que proteção não foi necessária
+
+        except Exception as e:
+            logger.error(f'Erro na proteção real-time: {e}')
+            return False
 
     def manage_trailing_stops(self):
         """Gerencia trailing stops para proteger lucros positivos"""
@@ -747,6 +835,20 @@ class SistemaMultiAtivos(threading.Thread):
         self.running = True
         logger.info('Sistema Multi-Ativos com 14 Agentes iniciado')
 
+        # Log dos spreads dinâmicos configurados para hoje
+        logger.info('=== CONFIGURAÇÃO DE SPREADS DINÂMICOS ===')
+        current_weekday = datetime.now(pytz.timezone('America/New_York')).weekday()
+        dias_semana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
+        dia_atual = dias_semana[current_weekday] if 0 <= current_weekday <= 4 else 'Fim de Semana'
+        logger.info(f'📅 Dia da Semana: {dia_atual}')
+
+        for simbolo in self.ativos:
+            base_spread = self.spreads_base[simbolo]
+            adjustment = self.spread_adjustments.get(current_weekday, 0)
+            dynamic_spread = base_spread + adjustment
+            logger.info(f'📊 {simbolo}: Base {base_spread} + Ajuste +{adjustment} = Spread Dinâmico {dynamic_spread}')
+        logger.info('=== SISTEMA OPERANDO COM SPREADS DINÂMICOS ===')
+
         while self.running:
             try:
                 # Verificar limites de lucro/prejuízo ANTES de operar
@@ -754,6 +856,9 @@ class SistemaMultiAtivos(threading.Thread):
 
                 # Sistema continua operando normalmente mesmo após atingir limites
                 if self.is_trading_hours():
+                    # Verificação em tempo real da proteção de lucro (antes de operar)
+                    self.check_profit_protection_real_time()
+
                     for simbolo in self.ativos:
                         # Usar análise com 14 agentes simultâneos
                         analysis = self.analyze_asset_with_agents(simbolo)
@@ -764,6 +869,9 @@ class SistemaMultiAtivos(threading.Thread):
 
                     # Gerenciar trailing stops para proteger lucros positivos
                     self.manage_trailing_stops()
+
+                    # Verificação adicional de proteção de lucro (após operações)
+                    self.check_profit_protection_real_time()
 
                 time.sleep(10)  # Reduzido para 10 segundos para melhor responsividade
 
