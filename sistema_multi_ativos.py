@@ -28,22 +28,6 @@ class SistemaMultiAtivos(threading.Thread):
         # Multi-ativos com 14 agentes trabalhando simultaneamente
         self.ativos = ['US100', 'US500', 'US30', 'DE30']
 
-        # Spreads base para cada ativo
-        self.spreads_base = {
-            'US100': 40,  # NASDAQ
-            'US500': 60,  # S&P 500
-            'US30': 50,   # Dow Jones
-            'DE30': 45    # DAX
-        }
-
-        # Sistema de ajuste automático de spread por dia da semana
-        self.spread_adjustments = {
-            0: 1,  # Segunda: +1
-            1: 2,  # Terça: +2
-            2: 1,  # Quarta: +1
-            3: 2,  # Quinta: +2
-            4: 2   # Sexta: +2
-        }
 
         self.ativos_info = {
             'US100': {'magic': 234001, 'lot': 0.01},
@@ -171,18 +155,6 @@ class SistemaMultiAtivos(threading.Thread):
         else:
             logger.error('Falha MT5')
 
-    def get_dynamic_spread(self, simbolo):
-        """Calcula spread dinâmico baseado no dia da semana"""
-        current_weekday = datetime.now(pytz.timezone('America/New_York')).weekday()
-        base_spread = self.spreads_base.get(simbolo, 50)
-        adjustment = self.spread_adjustments.get(current_weekday, 0)
-
-        dynamic_spread = base_spread + adjustment
-
-        # Log do spread atual para monitoramento
-        logger.info(f'📊 {simbolo} - Spread Base: {base_spread} | Ajuste Hoje: +{adjustment} | Spread Dinâmico: {dynamic_spread}')
-
-        return dynamic_spread
 
     # ========== MÉTODOS INSTITUCIONAIS AVANÇADOS ==========
 
@@ -548,10 +520,9 @@ class SistemaMultiAtivos(threading.Thread):
 
             # ========== ANÁLISES INSTITUCIONAIS AVANÇADAS ==========
 
-            # 1. Volatilidade com spread dinâmico
+            # 1. Volatilidade com threshold fixo
             vol = np.std(prices[-20:]) / np.mean(prices[-20:]) * 100
-            dynamic_spread = self.get_dynamic_spread(simbolo)
-            min_vol_threshold = dynamic_spread / 10000.0
+            min_vol_threshold = 0.08  # Threshold fixo de volatilidade
 
             if vol <= min_vol_threshold:
                 logger.info(f'📊 {simbolo} - Volatilidade insuficiente: {vol:.3f}% < {min_vol_threshold:.3f}%')
@@ -619,15 +590,14 @@ class SistemaMultiAtivos(threading.Thread):
                         agent_decisions.append('HOLD')
                         agent_confidences.append(30)
 
-                elif agent_id == 2:  # Agente de volatilidade/breakout com spread dinâmico
-                    dynamic_spread = self.get_dynamic_spread(simbolo)
-                    # Usar spread dinâmico como threshold adicional (convertido para volatilidade)
-                    spread_vol_threshold = dynamic_spread / 10000.0
+                elif agent_id == 2:  # Agente de volatilidade/breakout
+                    # Usar threshold fixo de volatilidade
+                    spread_vol_threshold = 0.08
 
-                    if vol > max(0.08, spread_vol_threshold * 2):  # Combina threshold fixo com spread dinâmico
+                    if vol > spread_vol_threshold:  # Threshold fixo de volatilidade
                         direction = 'BUY' if current_price > prices[-1] else 'SELL'
                         agent_decisions.append(direction)
-                        # Confiança baseada na volatilidade relativa ao spread dinâmico
+                        # Confiança baseada na volatilidade relativa
                         vol_multiplier = vol / max(0.08, spread_vol_threshold * 2)
                         agent_confidences.append(min(60 + (vol_multiplier * 15), 90))
                     else:
@@ -1146,25 +1116,23 @@ class SistemaMultiAtivos(threading.Thread):
                         agent_decisions.append('HOLD')
                         agent_confidences.append(30)
 
-                else:  # Volume/Price (estratégia melhorada com spread dinâmico)
+                else:  # Volume/Price (estratégia melhorada)
                     avg_volume = np.mean(rates['tick_volume'][-10:])
                     current_volume = rates['tick_volume'][-1]
                     volume_multiplier = current_volume / avg_volume
 
-                    # Ajustar threshold baseado no spread dinâmico
-                    dynamic_spread = self.get_dynamic_spread(simbolo)
-                    spread_adjustment = dynamic_spread / 100.0  # Convertendo para ajuste de volume
-                    volume_threshold = max(2.0, 2.0 - spread_adjustment)  # Spread maior = threshold menor
+                    # Usar threshold fixo de volume
+                    volume_threshold = 2.0  # Threshold fixo de volume
 
                     if volume_multiplier > volume_threshold and current_price > prices[-1]:
                         agent_decisions.append('BUY')
-                        # Confiança ajustada pelo spread dinâmico
-                        spread_bonus = min(spread_adjustment * 5, 10)
-                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10 + spread_bonus, 90))
+                        # Confiança ajustada pelo volume
+                        volume_bonus = min((volume_multiplier - 2) * 5, 10)
+                        agent_confidences.append(min(70 + volume_bonus, 90))
                     elif volume_multiplier > volume_threshold and current_price < prices[-1]:
                         agent_decisions.append('SELL')
-                        spread_bonus = min(spread_adjustment * 5, 10)
-                        agent_confidences.append(min(70 + (volume_multiplier - 2) * 10 + spread_bonus, 90))
+                        volume_bonus = min((volume_multiplier - 2) * 5, 10)
+                        agent_confidences.append(min(70 + volume_bonus, 90))
                     else:
                         agent_decisions.append('HOLD')
                         agent_confidences.append(35)
@@ -1535,19 +1503,6 @@ class SistemaMultiAtivos(threading.Thread):
         logger.info('🏦 Características de Trader Sênior ATIVADAS')
         logger.info('📊 10 Melhorias Institucionais Implementadas')
 
-        # 1. Log dos spreads dinâmicos configurados para hoje
-        logger.info('=== 📊 CONFIGURAÇÃO DE SPREADS DINÂMICOS ===')
-        current_weekday = datetime.now(pytz.timezone('America/New_York')).weekday()
-        dias_semana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta']
-        dia_atual = dias_semana[current_weekday] if 0 <= current_weekday <= 4 else 'Fim de Semana'
-        logger.info(f'📅 Dia da Semana: {dia_atual}')
-
-        for simbolo in self.ativos:
-            base_spread = self.spreads_base[simbolo]
-            adjustment = self.spread_adjustments.get(current_weekday, 0)
-            dynamic_spread = base_spread + adjustment
-            logger.info(f'📊 {simbolo}: Base {base_spread} + Ajuste +{adjustment} = Spread Dinâmico {dynamic_spread}')
-        logger.info('✅ Sistema de Spreads Dinâmicos: ATIVO')
 
         # 2. Log das funcionalidades institucionais
         logger.info('=== 🏦 FUNCIONALIDADES INSTITUCIONAIS ATIVAS (100 AGENTES) ===')
